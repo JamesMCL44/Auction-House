@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis.confirmation;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -6,6 +24,7 @@ import ca.tweetzy.auctionhouse.api.events.AuctionEndEvent;
 import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
 import ca.tweetzy.auctionhouse.auction.enums.AuctionSaleType;
+import ca.tweetzy.auctionhouse.auction.enums.AuctionStackType;
 import ca.tweetzy.auctionhouse.exception.ItemNotFoundException;
 import ca.tweetzy.auctionhouse.guis.AbstractPlaceholderGui;
 import ca.tweetzy.auctionhouse.guis.GUIAuctionHouse;
@@ -17,7 +36,6 @@ import ca.tweetzy.core.gui.events.GuiClickEvent;
 import ca.tweetzy.core.hooks.EconomyManager;
 import ca.tweetzy.core.utils.PlayerUtils;
 import ca.tweetzy.core.utils.TextUtils;
-import ca.tweetzy.core.utils.items.TItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.ShulkerBox;
@@ -27,7 +45,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 
 import java.util.HashMap;
-import java.util.Objects;
 
 /**
  * The current file has been created by Kiran Hart
@@ -62,7 +79,7 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 
 		if (this.buyingSpecificQuantity) {
 			setUseLockedCells(Settings.GUI_CONFIRM_FILL_BG_ON_QUANTITY.getBoolean());
-			setDefaultItem(Settings.GUI_CONFIRM_BG_ITEM.getMaterial().parseItem());
+			setDefaultItem(ConfigurationItemHelper.createConfigurationItem(Settings.GUI_CONFIRM_BG_ITEM.getString()));
 			this.purchaseQuantity = preAmount;
 			this.maxStackSize = preAmount;
 			this.pricePerItem = this.auctionItem.getBasePrice() / this.maxStackSize;
@@ -82,11 +99,11 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 	}
 
 	private void draw() {
-		ItemStack deserializeItem = this.auctionItem.getItem();
+		ItemStack deserializeItem = this.auctionItem.getItem().clone();
 
-		setItems(this.buyingSpecificQuantity ? 9 : 0, this.buyingSpecificQuantity ? 12 : 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_BUY_YES_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_BUY_YES_NAME.getString()).setLore(Settings.GUI_CONFIRM_BUY_YES_LORE.getStringList()).toItemStack());
-		setItem(this.buyingSpecificQuantity ? 1 : 0, 4, deserializeItem);
-		setItems(this.buyingSpecificQuantity ? 14 : 5, this.buyingSpecificQuantity ? 17 : 8, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_BUY_NO_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_BUY_NO_NAME.getString()).setLore(Settings.GUI_CONFIRM_BUY_NO_LORE.getStringList()).toItemStack());
+		setItems(this.buyingSpecificQuantity ? 9 : 0, this.buyingSpecificQuantity ? 12 : 3, getConfirmBuyYesItem());
+		setItem(this.buyingSpecificQuantity ? 1 : 0, 4, this.auctionItem.getDisplayStack(AuctionStackType.LISTING_PREVIEW));
+		setItems(this.buyingSpecificQuantity ? 14 : 5, this.buyingSpecificQuantity ? 17 : 8, getConfirmBuyNoItem());
 
 		setAction(this.buyingSpecificQuantity ? 1 : 0, 4, ClickType.LEFT, e -> {
 			if (deserializeItem.getItemMeta() instanceof BlockStateMeta) {
@@ -126,7 +143,7 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 					return;
 				}
 
-				AuctionEndEvent auctionEndEvent = new AuctionEndEvent(Bukkit.getOfflinePlayer(this.auctionItem.getOwner()), e.player, this.auctionItem, AuctionSaleType.WITHOUT_BIDDING_SYSTEM, false);
+				AuctionEndEvent auctionEndEvent = new AuctionEndEvent(Bukkit.getOfflinePlayer(this.auctionItem.getOwner()), e.player, this.auctionItem, AuctionSaleType.WITHOUT_BIDDING_SYSTEM, tax, false);
 				Bukkit.getServer().getPluginManager().callEvent(auctionEndEvent);
 				if (auctionEndEvent.isCancelled()) return;
 
@@ -164,8 +181,18 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 					if (!located.isInfinite())
 						AuctionHouse.getInstance().getAuctionItemManager().sendToGarbage(located);
 
+					if (Settings.BIDDING_TAKES_MONEY.getBoolean() && !located.getHighestBidder().equals(located.getOwner())) {
+						final OfflinePlayer oldBidder = Bukkit.getOfflinePlayer(located.getHighestBidder());
+
+						EconomyManager.deposit(oldBidder, auctionItem.getCurrentPrice());
+
+						if (oldBidder.isOnline())
+							AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyadd").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(oldBidder))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(located.getCurrentPrice())).sendPrefixedMessage(oldBidder.getPlayer());
+
+					}
+
 					PlayerUtils.giveItem(e.player, located.getItem());
-					sendMessages(e, located, false, 0, -1);
+					sendMessages(e, located, false, 0, deserializeItem.getAmount());
 				}
 
 				if (Settings.BROADCAST_AUCTION_SALE.getBoolean()) {
@@ -197,14 +224,14 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 			drawPurchaseInfo(this.maxStackSize);
 
 			// Decrease Button
-			setButton(3, 3, new TItemBuilder(Settings.GUI_CONFIRM_DECREASE_QTY_ITEM.getMaterial().parseMaterial()).setName(Settings.GUI_CONFIRM_DECREASE_QTY_NAME.getString()).setLore(Settings.GUI_CONFIRM_DECREASE_QTY_LORE.getStringList()).toItemStack(), e -> {
+			setButton(3, 3, getDecreaseQtyButtonItem(), e -> {
 				if ((this.purchaseQuantity - 1) <= 0) return;
 				this.purchaseQuantity -= 1;
 				drawPurchaseInfo(this.purchaseQuantity);
 			});
 
 			// Increase Button
-			setButton(3, 5, new TItemBuilder(Settings.GUI_CONFIRM_INCREASE_QTY_ITEM.getMaterial().parseMaterial()).setName(Settings.GUI_CONFIRM_INCREASE_QTY_NAME.getString()).setLore(Settings.GUI_CONFIRM_INCREASE_QTY_LORE.getStringList()).toItemStack(), e -> {
+			setButton(3, 5, getIncreaseQtyButtonItem(), e -> {
 				if ((this.purchaseQuantity + 1) > this.maxStackSize) return;
 				this.purchaseQuantity += 1;
 				drawPurchaseInfo(this.purchaseQuantity);
@@ -224,12 +251,12 @@ public class GUIConfirmPurchase extends AbstractPlaceholderGui {
 		double tax = Settings.TAX_ENABLED.getBoolean() ? (Settings.TAX_SALES_TAX_BUY_NOW_PERCENTAGE.getDouble() / 100) * totalPrice : 0D;
 
 		AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyremove").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(e.player))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(Settings.TAX_CHARGE_SALES_TAX_TO_BUYER.getBoolean() ? totalPrice - tax : totalPrice)).sendPrefixedMessage(e.player);
-		AuctionHouse.getInstance().getLocale().getMessage("general.bought_item").processPlaceholder("amount", qtyOverride != -1 ? qtyOverride : located.getItem().getAmount()).processPlaceholder("item", AuctionAPI.getInstance().getItemName(located.getItem())).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(Settings.TAX_CHARGE_SALES_TAX_TO_BUYER.getBoolean() ? totalPrice - tax : totalPrice)).sendPrefixedMessage(e.player);
+		AuctionHouse.getInstance().getLocale().getMessage("general.bought_item").processPlaceholder("amount", qtyOverride).processPlaceholder("item", AuctionAPI.getInstance().getItemName(located.getItem())).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(Settings.TAX_CHARGE_SALES_TAX_TO_BUYER.getBoolean() ? totalPrice - tax : totalPrice)).sendPrefixedMessage(e.player);
 
 		if (Bukkit.getOfflinePlayer(located.getOwner()).isOnline()) {
 			AuctionHouse.getInstance().getLocale().getMessage("auction.itemsold")
 					.processPlaceholder("item", AuctionAPI.getInstance().getItemName(located.getItem()))
-					.processPlaceholder("amount", qtyOverride != -1 ? qtyOverride : located.getItem().getAmount())
+					.processPlaceholder("amount", qtyOverride)
 					.processPlaceholder("price", AuctionAPI.getInstance().formatNumber(Settings.TAX_CHARGE_SALES_TAX_TO_BUYER.getBoolean() ? totalPrice : totalPrice - tax))
 					.processPlaceholder("buyer_name", e.player.getName())
 					.sendPrefixedMessage(Bukkit.getOfflinePlayer(located.getOwner()).getPlayer());

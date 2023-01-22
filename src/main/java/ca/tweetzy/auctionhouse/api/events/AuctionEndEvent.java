@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.api.events;
 
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
@@ -28,16 +46,19 @@ public class AuctionEndEvent extends Event implements Cancellable {
 	private AuctionedItem auctionItem;
 	private AuctionSaleType saleType;
 
-	public AuctionEndEvent(OfflinePlayer originalOwner, OfflinePlayer buyer, AuctionedItem auctionItem, AuctionSaleType saleType, boolean async) {
+	private double tax;
+
+	public AuctionEndEvent(OfflinePlayer originalOwner, OfflinePlayer buyer, AuctionedItem auctionItem, AuctionSaleType saleType, double tax, boolean async) {
 		super(async);
 		this.originalOwner = originalOwner;
 		this.buyer = buyer;
 		this.auctionItem = auctionItem;
 		this.saleType = saleType;
+		this.tax = tax;
 	}
 
-	public AuctionEndEvent(OfflinePlayer originalOwner, OfflinePlayer buyer, AuctionedItem auctionItem, AuctionSaleType saleType) {
-		this(originalOwner, buyer, auctionItem, saleType, true);
+	public AuctionEndEvent(OfflinePlayer originalOwner, OfflinePlayer buyer, AuctionedItem auctionItem, AuctionSaleType saleType, double tax) {
+		this(originalOwner, buyer, auctionItem, saleType, tax, true);
 	}
 
 	public HandlerList getHandlers() {

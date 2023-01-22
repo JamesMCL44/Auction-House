@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -6,7 +24,7 @@ import ca.tweetzy.auctionhouse.auction.MinItemPrice;
 import ca.tweetzy.auctionhouse.guis.GUIMinItemPrices;
 import ca.tweetzy.auctionhouse.helpers.PlayerHelper;
 import ca.tweetzy.core.commands.AbstractCommand;
-import ca.tweetzy.core.compatibility.XMaterial;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import ca.tweetzy.core.utils.NumberUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -29,11 +47,12 @@ public class CommandMinPrice extends AbstractCommand {
 
 	@Override
 	protected ReturnType runCommand(CommandSender sender, String... args) {
-		Player player = (Player) sender;
+		final Player player = (Player) sender;
 		if (CommandMiddleware.handle(player) == ReturnType.FAILURE) return ReturnType.FAILURE;
 
+		final AuctionHouse instance = AuctionHouse.getInstance();
 		if (args.length == 0) {
-			AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUIMinItemPrices(player));
+			instance.getGuiManager().showGUI(player, new GUIMinItemPrices(player));
 			return ReturnType.SUCCESS;
 		}
 
@@ -41,27 +60,27 @@ public class CommandMinPrice extends AbstractCommand {
 
 			ItemStack held = PlayerHelper.getHeldItem(player);
 
-			if (held.getType() == XMaterial.AIR.parseMaterial()) {
-				AuctionHouse.getInstance().getLocale().getMessage("general.min item price air").sendPrefixedMessage(player);
+			if (held.getType() == CompMaterial.AIR.parseMaterial()) {
+				instance.getLocale().getMessage("general.min item price air").sendPrefixedMessage(player);
 				return ReturnType.FAILURE;
 			}
 
-			if (AuctionHouse.getInstance().getMinItemPriceManager().getMinPrice(held.clone()) != null) {
-				AuctionHouse.getInstance().getLocale().getMessage("general.min price already added").sendPrefixedMessage(player);
+			if (instance.getMinItemPriceManager().getMinPrice(held.clone()) != null) {
+				instance.getLocale().getMessage("general.min price already added").sendPrefixedMessage(player);
 				return ReturnType.FAILURE;
 			}
 
 			if (!NumberUtils.isNumeric(args[1])) {
-				AuctionHouse.getInstance().getLocale().getMessage("general.notanumber").sendPrefixedMessage(player);
+				instance.getLocale().getMessage("general.notanumber").processPlaceholder("value", args[1]).sendPrefixedMessage(player);
 				return ReturnType.FAILURE;
 			}
 
 			final double price = Double.parseDouble(args[1]);
 
-			AuctionHouse.getInstance().getDataManager().insertMinPriceAsync(new MinItemPrice(held.clone(), price), (error, inserted) -> {
+			instance.getDataManager().insertMinPriceAsync(new MinItemPrice(held.clone(), price), (error, inserted) -> {
 				if (error == null) {
-					AuctionHouse.getInstance().getMinItemPriceManager().addItem(inserted);
-					AuctionHouse.getInstance().getLocale().getMessage("general.added min price")
+					instance.getMinItemPriceManager().addItem(inserted);
+					instance.getLocale().getMessage("general.added min price")
 							.processPlaceholder("item", AuctionAPI.getInstance().getItemName(inserted.getItemStack()))
 							.processPlaceholder("price", AuctionAPI.getInstance().formatNumber(inserted.getPrice()))
 							.sendPrefixedMessage(player);

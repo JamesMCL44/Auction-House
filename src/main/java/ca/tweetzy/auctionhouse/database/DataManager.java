@@ -1,16 +1,34 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.database;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
 import ca.tweetzy.auctionhouse.api.AuctionAPI;
 import ca.tweetzy.auctionhouse.auction.*;
-import ca.tweetzy.auctionhouse.auction.enums.AdminAction;
-import ca.tweetzy.auctionhouse.auction.enums.AuctionItemCategory;
-import ca.tweetzy.auctionhouse.auction.enums.AuctionSaleType;
+import ca.tweetzy.auctionhouse.auction.enums.*;
 import ca.tweetzy.auctionhouse.settings.Settings;
 import ca.tweetzy.auctionhouse.transaction.Transaction;
 import ca.tweetzy.core.database.DataManagerAbstract;
 import ca.tweetzy.core.database.DatabaseConnector;
 import ca.tweetzy.core.database.MySQLConnector;
+import lombok.NonNull;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +37,10 @@ import org.jetbrains.annotations.Nullable;
 import java.sql.*;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -36,8 +57,16 @@ public class DataManager extends DataManagerAbstract {
 
 	private final ExecutorService thread = Executors.newSingleThreadExecutor();
 
-	public DataManager(DatabaseConnector databaseConnector, Plugin plugin) {
+	private final @Nullable String customTablePrefix;
+
+	public DataManager(DatabaseConnector databaseConnector, Plugin plugin, @Nullable String customTablePrefix) {
 		super(databaseConnector, plugin);
+		this.customTablePrefix = customTablePrefix;
+	}
+
+	@Override
+	public String getTablePrefix() {
+		return customTablePrefix == null ? super.getTablePrefix() : customTablePrefix;
 	}
 
 	public void close() {
@@ -295,6 +324,7 @@ public class DataManager extends DataManagerAbstract {
 	public void insertAuction(AuctionedItem item, Callback<AuctionedItem> callback) {
 		this.databaseConnector.connect(connection -> {
 			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + this.getTablePrefix() + "auctions(id, owner, highest_bidder, owner_name, highest_bidder_name, category, base_price, bid_start_price, bid_increment_price, current_price, expired, expires_at, item_material, item_name, item_lore, item_enchants, item, listed_world, infinite, allow_partial_buys) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+				final AuctionAPI api = AuctionAPI.getInstance();
 				PreparedStatement fetch = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE id = ?");
 
 				fetch.setString(1, item.getId().toString());
@@ -311,9 +341,9 @@ public class DataManager extends DataManagerAbstract {
 				statement.setBoolean(11, item.isExpired());
 				statement.setLong(12, item.getExpiresAt());
 				statement.setString(13, item.getItem().getType().name());
-				statement.setString(14, AuctionAPI.getInstance().getItemName(item.getItem()));
-				statement.setString(15, AuctionAPI.getInstance().serializeLines(AuctionAPI.getInstance().getItemLore(item.getItem())));
-				statement.setString(16, AuctionAPI.getInstance().serializeLines(AuctionAPI.getInstance().getItemEnchantments(item.getItem())));
+				statement.setString(14, api.getItemName(item.getItem()));
+				statement.setString(15, api.serializeLines(api.getItemLore(item.getItem())));
+				statement.setString(16, api.serializeLines(api.getItemEnchantments(item.getItem())));
 				statement.setString(17, AuctionAPI.encodeItem(item.getItem()));
 				statement.setString(18, item.getListedWorld());
 				statement.setBoolean(19, item.isInfinite());
@@ -390,19 +420,40 @@ public class DataManager extends DataManagerAbstract {
 		}));
 	}
 
-	public void getStats(Callback<Map<UUID, AuctionStat<Integer, Integer, Integer, Double, Double>>> callback) {
-		Map<UUID, AuctionStat<Integer, Integer, Integer, Double, Double>> stats = new HashMap<>();
-		this.async(() -> this.databaseConnector.connect(connection -> {
-			try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "stats")) {
+	public void insertStatistic(AuctionStatistic statistic, Callback<AuctionStatistic> callback) {
+		this.thread.execute(() -> this.databaseConnector.connect(connection -> {
+			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + this.getTablePrefix() + "statistic (uuid, stat_owner, stat_type, value, time) VALUES (?, ?, ?, ?, ?)")) {
+
+				PreparedStatement fetch = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "statistic WHERE uuid = ?");
+
+				fetch.setString(1, statistic.getId().toString());
+				statement.setString(1, statistic.getId().toString());
+				statement.setString(2, statistic.getStatOwner().toString());
+				statement.setString(3, statistic.getStatisticType().name());
+				statement.setDouble(4, statistic.getValue());
+				statement.setLong(5, statistic.getTime());
+				statement.executeUpdate();
+
+				if (callback != null) {
+					ResultSet res = fetch.executeQuery();
+					res.next();
+					callback.accept(null, extractAuctionStatistic(res));
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				resolveCallback(callback, e);
+			}
+		}));
+	}
+
+	public void getStatistics(Callback<List<AuctionStatistic>> callback) {
+		List<AuctionStatistic> stats = new ArrayList<>();
+		this.thread.execute(() -> this.databaseConnector.connect(connection -> {
+			try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "statistic")) {
 				ResultSet resultSet = statement.executeQuery();
 				while (resultSet.next()) {
-					stats.put(UUID.fromString(resultSet.getString("id")), new AuctionStat<>(
-							resultSet.getInt("auctions_created"),
-							resultSet.getInt("auctions_sold"),
-							resultSet.getInt("auctions_expired"),
-							resultSet.getDouble("money_earned"),
-							resultSet.getDouble("money_spent")
-					));
+					stats.add(extractAuctionStatistic(resultSet));
 				}
 
 				callback.accept(null, stats);
@@ -410,41 +461,6 @@ public class DataManager extends DataManagerAbstract {
 				resolveCallback(callback, e);
 			}
 		}));
-	}
-
-	public void updateStats(Map<UUID, AuctionStat<Integer, Integer, Integer, Double, Double>> stats, UpdateCallback callback) {
-		this.databaseConnector.connect(connection -> {
-			connection.setAutoCommit(false);
-			SQLException error = null;
-
-			PreparedStatement statement = connection.prepareStatement("REPLACE into " + this.getTablePrefix() + "stats (id, auctions_created, auctions_sold, auctions_expired, money_earned, money_spent) VALUES(?,?,?,?,?,?)");
-			for (Map.Entry<UUID, AuctionStat<Integer, Integer, Integer, Double, Double>> value : stats.entrySet()) {
-				try {
-					statement.setString(1, value.getKey().toString());
-					statement.setInt(2, value.getValue().getCreated());
-					statement.setInt(3, value.getValue().getSold());
-					statement.setInt(4, value.getValue().getExpired());
-					statement.setDouble(5, value.getValue().getEarned());
-					statement.setDouble(6, value.getValue().getSpent());
-					statement.addBatch();
-				} catch (SQLException e) {
-					error = e;
-					break;
-				}
-			}
-
-			statement.executeBatch();
-
-			if (error == null) {
-				connection.commit();
-				resolveUpdateCallback(callback, null);
-			} else {
-				connection.rollback();
-				resolveUpdateCallback(callback, error);
-			}
-
-			connection.setAutoCommit(true);
-		});
 	}
 
 	public void insertAuctionAsync(AuctionedItem item, Callback<AuctionedItem> callback) {
@@ -521,6 +537,95 @@ public class DataManager extends DataManagerAbstract {
 	public void deleteItemsAsync(Collection<UUID> items) {
 		this.thread.execute(() -> deleteItems(items));
 	}
+
+	public void insertAuctionPlayer(AuctionPlayer auctionPlayer, Callback<AuctionPlayer> callback) {
+		this.thread.execute(() -> this.databaseConnector.connect(connection -> {
+			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + getTablePrefix() + "player (uuid, filter_sale_type, filter_item_category, filter_sort_type, last_listed_item) VALUES (?, ?, ?, ?, ?)")) {
+				PreparedStatement fetch = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "player WHERE uuid = ?");
+
+				fetch.setString(1, auctionPlayer.getUuid().toString());
+				statement.setString(1, auctionPlayer.getPlayer().getUniqueId().toString());
+				statement.setString(2, auctionPlayer.getSelectedSaleType().name());
+				statement.setString(3, auctionPlayer.getSelectedFilter().name());
+				statement.setString(4, auctionPlayer.getAuctionSortType().name());
+				statement.setLong(5, auctionPlayer.getLastListedItem());
+				statement.executeUpdate();
+
+				if (callback != null) {
+					ResultSet res = fetch.executeQuery();
+					res.next();
+					callback.accept(null, extractAuctionPlayer(res));
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				resolveCallback(callback, e);
+			}
+		}));
+	}
+
+	public void getAuctionPlayers(Callback<ArrayList<AuctionPlayer>> callback) {
+		ArrayList<AuctionPlayer> auctionPlayers = new ArrayList<>();
+		this.async(() -> this.databaseConnector.connect(connection -> {
+			try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "player")) {
+				ResultSet resultSet = statement.executeQuery();
+				while (resultSet.next()) {
+					auctionPlayers.add(extractAuctionPlayer(resultSet));
+				}
+
+				callback.accept(null, auctionPlayers);
+			} catch (Exception e) {
+				resolveCallback(callback, e);
+			}
+		}));
+	}
+
+	public void updateAuctionPlayer(@NonNull final AuctionPlayer auctionPlayer, Callback<Boolean> callback) {
+		this.thread.execute(() -> this.databaseConnector.connect(connection -> {
+			try (PreparedStatement statement = connection.prepareStatement("UPDATE " + this.getTablePrefix() + "player SET filter_sale_type = ?, filter_item_category = ?, filter_sort_type = ?, last_listed_item = ? WHERE uuid = ?")) {
+
+				statement.setString(1, auctionPlayer.getSelectedSaleType().name());
+				statement.setString(2, auctionPlayer.getSelectedFilter().name());
+				statement.setString(3, auctionPlayer.getAuctionSortType().name());
+				statement.setLong(4, auctionPlayer.getLastListedItem());
+				statement.setString(5, auctionPlayer.getUuid().toString());
+
+				int result = statement.executeUpdate();
+
+				if (callback != null)
+					callback.accept(null, result > 0);
+
+			} catch (Exception e) {
+				resolveCallback(callback, e);
+			}
+		}));
+	}
+
+	private AuctionStatistic extractAuctionStatistic(ResultSet resultSet) throws SQLException {
+		return new AuctionStatistic(
+				UUID.fromString(resultSet.getString("uuid")),
+				UUID.fromString(resultSet.getString("stat_owner")),
+				AuctionStatisticType.valueOf(resultSet.getString("stat_type")),
+				resultSet.getDouble("value"),
+				resultSet.getLong("time")
+		);
+	}
+
+	private AuctionPlayer extractAuctionPlayer(ResultSet resultSet) throws SQLException {
+		return new AuctionPlayer(
+				UUID.fromString(resultSet.getString("uuid")),
+				Bukkit.getPlayer(UUID.fromString(resultSet.getString("uuid"))),
+				AuctionSaleType.valueOf(resultSet.getString("filter_sale_type")),
+				AuctionItemCategory.valueOf(resultSet.getString("filter_item_category")),
+				AuctionSortType.valueOf(resultSet.getString("filter_sort_type")),
+				"",
+				true,
+				resultSet.getLong("last_listed_item"),
+				null,
+				-1
+		);
+	}
+
 
 	private AuctionedItem extractAuctionedItem(ResultSet resultSet) throws SQLException {
 		final ItemStack item = AuctionAPI.decodeItem(resultSet.getString("item"));

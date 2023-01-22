@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.auction;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -92,7 +110,14 @@ public class AuctionedItem {
 		ItemStack itemStack = this.item.clone();
 		itemStack.setAmount(Math.max(this.item.getAmount(), 1));
 		ItemMeta meta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
-		List<String> lore = (meta.hasLore()) ? meta.getLore() : new ArrayList<>();
+//		List<String> lore = (meta.hasLore()) ? meta.getLore() : new ArrayList<>();
+
+		List<String> lore = new ArrayList<>();
+
+		if (meta != null && meta.getLore() != null)
+			lore.addAll(meta.getLore());
+
+
 		lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_DETAILS_HEADER.getStringList()));
 		lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_DETAILS_SELLER.getStringList().stream().map(s -> s.replace("%seller%", this.ownerName)).collect(Collectors.toList())));
 		lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_DETAILS_CURRENT_PRICE.getStringList().stream().map(s -> s.replace("%currentprice%", Settings.USE_SHORT_NUMBERS_ON_ITEMS.getBoolean() ? AuctionAPI.getInstance().getFriendlyNumber(this.currentPrice) : AuctionAPI.getInstance().formatNumber(this.currentPrice))).collect(Collectors.toList())));
@@ -121,7 +146,12 @@ public class AuctionedItem {
 		ItemStack itemStack = this.item.clone();
 		itemStack.setAmount(Math.max(this.item.getAmount(), 1));
 		ItemMeta meta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
-		List<String> lore = (meta.hasLore()) ? meta.getLore() : new ArrayList<>();
+
+		List<String> lore = new ArrayList<>();
+
+		if (meta != null && meta.getLore() != null)
+			lore.addAll(meta.getLore());
+
 
 		lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_DETAILS_HEADER.getStringList()));
 		lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_DETAILS_SELLER.getStringList().stream().map(s -> s.replace("%seller%", this.ownerName)).collect(Collectors.toList())));
@@ -170,10 +200,15 @@ public class AuctionedItem {
 				lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_PURCHASE_CONTROLS_INSPECTION.getStringList()));
 			}
 		} else {
-			lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_PURCHASE_CONTROLS_CANCEL_ITEM.getStringList()));
-			if (Settings.ALLOW_PLAYERS_TO_ACCEPT_BID.getBoolean() && this.bidStartingPrice >= 1 || this.bidIncrementPrice >= 1) {
-				if (!this.owner.equals(this.highestBidder)) {
-					lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_PURCHASE_CONTROLS_ACCEPT_BID.getStringList()));
+			if (type == AuctionStackType.LISTING_PREVIEW) {
+				lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_LISTING_PREVIEW_ITEM.getStringList()));
+
+			} else {
+				lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_PURCHASE_CONTROLS_CANCEL_ITEM.getStringList()));
+				if (Settings.ALLOW_PLAYERS_TO_ACCEPT_BID.getBoolean() && this.bidStartingPrice >= 1 || this.bidIncrementPrice >= 1) {
+					if (!this.owner.equals(this.highestBidder)) {
+						lore.addAll(TextUtils.formatText(Settings.AUCTION_STACK_PURCHASE_CONTROLS_ACCEPT_BID.getStringList()));
+					}
 				}
 			}
 		}

@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis.transaction;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -9,12 +27,14 @@ import ca.tweetzy.auctionhouse.helpers.ConfigurationItemHelper;
 import ca.tweetzy.auctionhouse.settings.Settings;
 import ca.tweetzy.auctionhouse.transaction.Transaction;
 import ca.tweetzy.core.utils.TextUtils;
-import ca.tweetzy.core.utils.items.TItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -34,12 +54,13 @@ public class GUITransactionList extends AbstractPlaceholderGui {
 	public GUITransactionList(Player player, boolean showAll) {
 		super(player);
 		this.player = player;
-		this.auctionPlayer = AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(this.player.getUniqueId());
+		final AuctionHouse instance = AuctionHouse.getInstance();
+		this.auctionPlayer = instance.getAuctionPlayerManager().getPlayer(this.player.getUniqueId());
 		this.showAll = showAll;
 		if (showAll)
-			this.transactions = new ArrayList<>(AuctionHouse.getInstance().getTransactionManager().getTransactions().values());
+			this.transactions = new ArrayList<>(instance.getTransactionManager().getTransactions().values());
 		else
-			this.transactions = AuctionHouse.getInstance().getTransactionManager().getTransactions().values().stream().filter(transaction -> transaction.getSeller().equals(player.getUniqueId()) || transaction.getBuyer().equals(player.getUniqueId())).collect(Collectors.toList());
+			this.transactions = instance.getTransactionManager().getTransactions().values().stream().filter(transaction -> transaction.getSeller().equals(player.getUniqueId()) || transaction.getBuyer().equals(player.getUniqueId())).collect(Collectors.toList());
 
 		setTitle(TextUtils.formatText(showAll ? Settings.GUI_TRANSACTIONS_TITLE_ALL.getString() : Settings.GUI_TRANSACTIONS_TITLE.getString()));
 		setRows(6);
@@ -51,9 +72,9 @@ public class GUITransactionList extends AbstractPlaceholderGui {
 		reset();
 
 		pages = (int) Math.max(1, Math.ceil(this.transactions.size() / (double) 45));
-		setPrevPage(5, 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_BACK_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_BACK_BTN_NAME.getString()).setLore(Settings.GUI_BACK_BTN_LORE.getStringList()).toItemStack());
-		setButton(5, 4, new TItemBuilder(Objects.requireNonNull(Settings.GUI_REFRESH_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_REFRESH_BTN_NAME.getString()).setLore(Settings.GUI_REFRESH_BTN_LORE.getStringList()).toItemStack(), e -> e.manager.showGUI(e.player, new GUITransactionList(this.player, this.showAll)));
-		setNextPage(5, 5, new TItemBuilder(Objects.requireNonNull(Settings.GUI_NEXT_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_NEXT_BTN_NAME.getString()).setLore(Settings.GUI_NEXT_BTN_LORE.getStringList()).toItemStack());
+		setPrevPage(5, 3, getPreviousPageItem());
+		setButton(5, 4, getRefreshButtonItem(), e -> e.manager.showGUI(e.player, new GUITransactionList(this.player, this.showAll)));
+		setNextPage(5, 5, getNextPageItem());
 		setOnPage(e -> draw());
 
 		// Other Buttons

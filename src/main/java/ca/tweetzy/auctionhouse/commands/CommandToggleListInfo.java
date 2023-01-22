@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -9,6 +27,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The current file has been created by Kiran Hart
@@ -25,16 +44,17 @@ public class CommandToggleListInfo extends AbstractCommand {
 
 	@Override
 	protected ReturnType runCommand(CommandSender sender, String... args) {
-		Player player = (Player) sender;
-
-		if (AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(player.getUniqueId()) == null) {
-			AuctionHouse.getInstance().getLocale().newMessage(TextUtils.formatText("&cCould not find auction player instance for&f: &e" + player.getName() + "&c creating one now.")).sendPrefixedMessage(Bukkit.getConsoleSender());
-			AuctionHouse.getInstance().getAuctionPlayerManager().addPlayer(new AuctionPlayer(player));
+		final Player player = (Player) sender;
+		final UUID playerUUID = player.getUniqueId();
+		final AuctionHouse instance = AuctionHouse.getInstance();
+		if (instance.getAuctionPlayerManager().getPlayer(playerUUID) == null) {
+			instance.getLocale().newMessage(TextUtils.formatText("&cCould not find auction player instance for&f: &e" + player.getName() + "&c creating one now.")).sendPrefixedMessage(Bukkit.getConsoleSender());
+			instance.getAuctionPlayerManager().addPlayer(new AuctionPlayer(player));
 		}
 
-		AuctionPlayer auctionPlayer = AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(player.getUniqueId());
+		final AuctionPlayer auctionPlayer = instance.getAuctionPlayerManager().getPlayer(playerUUID);
 		auctionPlayer.setShowListingInfo(!auctionPlayer.isShowListingInfo());
-		AuctionHouse.getInstance().getLocale().getMessage("general.toggled listing." + (auctionPlayer.isShowListingInfo() ? "on" : "off")).sendPrefixedMessage(player);
+		instance.getLocale().getMessage("general.toggled listing." + (auctionPlayer.isShowListingInfo() ? "on" : "off")).sendPrefixedMessage(player);
 
 		return ReturnType.SUCCESS;
 	}

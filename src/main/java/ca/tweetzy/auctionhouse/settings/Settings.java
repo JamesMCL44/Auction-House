@@ -1,7 +1,25 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.settings;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
-import ca.tweetzy.core.compatibility.XMaterial;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import ca.tweetzy.core.compatibility.XSound;
 import ca.tweetzy.core.configuration.Config;
 import ca.tweetzy.core.configuration.ConfigSetting;
@@ -61,6 +79,8 @@ public class Settings {
 	public static final ConfigSetting DISABLE_AUTO_SAVE_MSG = new ConfigSetting(config, "auction setting.disable auto save message", false, "If true, auction house will not log the auto save task to the console");
 	public static final ConfigSetting DISABLE_CLEANUP_MSG = new ConfigSetting(config, "auction setting.disable clean up message", false, "If true, auction house will not log the clean up process to the console");
 
+	public static final ConfigSetting DISABLE_PROFILE_UPDATE_MSG = new ConfigSetting(config, "auction setting.disable profile update message", false, "If true, auction house will not log the player profile updates to the console");
+
 	public static final ConfigSetting TICK_UPDATE_TIME = new ConfigSetting(config, "auction setting.tick auctions every", 1, "How many seconds should pass before the plugin updates all the times on items?");
 
 	public static final ConfigSetting GARBAGE_DELETION_TIMED_MODE = new ConfigSetting(config, "auction setting.garbage deletion.timed mode", true, "If true, auction house will only run the garbage deletion task, after set amount of seconds", "otherwise if false, it will wait until the total garbage bin count", "reaches/exceeds the specified value");
@@ -99,6 +119,8 @@ public class Settings {
 	public static final ConfigSetting FORCE_AUCTION_USAGE = new ConfigSetting(config, "auction setting.force auction usage", false, "If enabled, all items sold on the auction house must be an auction (biddable) items");
 	public static final ConfigSetting ALLOW_INDIVIDUAL_ITEM_CLAIM = new ConfigSetting(config, "auction setting.allow individual item claim", true, "If enabled, you will be able to click individual items from the expiration menu to claim them back. Otherwise you will have to use the claim all button");
 	public static final ConfigSetting FORCE_CUSTOM_BID_AMOUNT = new ConfigSetting(config, "auction setting.force custom bid amount", false, "If enabled, the bid increment line on auction items will be hidden, bid increment values will be ignored, and when you go to bid on an item, it will ask you to enter a custom amount.");
+
+	public static final ConfigSetting BIDDING_TAKES_MONEY = new ConfigSetting(config, "auction setting.bidding takes money", false, "If enabled, players will be outright charged the current bid for the item", "If they are outbid or the item is cancelled, they will get their money back. Disables ability for owners to bid on their own items!");
 	public static final ConfigSetting LIST_ITEM_DELAY = new ConfigSetting(config, "auction setting.list item delay", -1, "If not set to -1 (disabled) how many seconds must a player wait to list another item after listing 1?");
 	public static final ConfigSetting FORCE_SYNC_MONEY_ACTIONS = new ConfigSetting(config, "auction setting.force sync money actions", false, "If true, auction house will forcefully run a sync task to withdraw/deposit cash, this does not apply when using the commands");
 	public static final ConfigSetting EXPIRATION_TIME_LIMIT_ENABLED = new ConfigSetting(config, "auction setting.expiration time limit.enabled", false, "If true, auction house will automatically delete un claimed expired items after 7 days (default)");
@@ -113,6 +135,11 @@ public class Settings {
 	public static final ConfigSetting CURRENCY_FORMAT = new ConfigSetting(config, "auction setting.currency format", "%,.2f");
 	public static final ConfigSetting STRIP_ZEROS_ON_WHOLE_NUMBERS = new ConfigSetting(config, "auction setting.strip zeros on whole numbers", false, "If the price / amount is a whole number (ex. 40.00) it will drop the .00");
 
+	public static final ConfigSetting ADMIN_OPTION_SHOW_RETURN_ITEM = new ConfigSetting(config, "auction setting.admin option.show return to player", true);
+	public static final ConfigSetting ADMIN_OPTION_SHOW_CLAIM_ITEM = new ConfigSetting(config, "auction setting.admin option.show claim item", true);
+	public static final ConfigSetting ADMIN_OPTION_SHOW_DELETE_ITEM = new ConfigSetting(config, "auction setting.admin option.show delete item", true);
+	public static final ConfigSetting ADMIN_OPTION_SHOW_COPY_ITEM = new ConfigSetting(config, "auction setting.admin option.show copy item", true);
+
 	public static final ConfigSetting USE_ALTERNATE_CURRENCY_FORMAT = new ConfigSetting(config, "auction setting.use alternate currency format", false, "If true, $123,456.78 will become $123.456,78");
 	public static final ConfigSetting USE_FLAT_NUMBER_FORMAT = new ConfigSetting(config, "auction setting.use flat number format", false, "If true, $123,456.78 will become $12345678");
 	public static final ConfigSetting DATE_FORMAT = new ConfigSetting(config, "auction setting.date format", "MMM dd, yyyy hh:mm aa", "You can learn more about date formats by googling SimpleDateFormat patterns or visiting this link", "https://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html");
@@ -121,8 +148,11 @@ public class Settings {
 	public static final ConfigSetting ALLOW_PLAYERS_TO_DEFINE_AUCTION_TIME = new ConfigSetting(config, "auction setting.allow players to set auction time", false, "If true players can use -t 1 day for example to set the listing time for their item");
 	public static final ConfigSetting MAX_CUSTOM_DEFINED_TIME = new ConfigSetting(config, "auction setting.max custom defined time", 604800, "What should the limit on custom defined listing times be in seconds?");
 	public static final ConfigSetting SMART_MIN_BUY_PRICE = new ConfigSetting(config, "auction setting.smart min and buy price", false, "Will calculate buy now/min prices on a per item basis. For example, if the user states $100 and the item is in a stack of", "32, the min / buy now price will be $3200. If they provide -s or -stack in the command", "this will be ignored and the entire stack will sell for $100");
+	public static final ConfigSetting TITLE_INPUT_CANCEL_WORD = new ConfigSetting(config, "auction setting.title input cancel word", "cancel", "The word to be used to cancel chat inputs (users can also just click any block)");
 
 	public static final ConfigSetting USE_SEPARATE_FILTER_MENU = new ConfigSetting(config, "auction setting.use separate filter menu", false, "If true, rather than using a single filter item inside the auction menu", "it will open an entirely new menu to select the filter");
+	public static final ConfigSetting FILTER_ONLY_USES_WHITELIST = new ConfigSetting(config, "auction setting.filter only uses whitelist", false, "If true, auction house will ignore default filters, and only filter by the items added to the category whitelists");
+	public static final ConfigSetting FILTER_WHITELIST_USES_DURABILITY = new ConfigSetting(config, "auction setting.filter whitelist uses durability", false, "If true, the filter will look at material names and durability values for comparisons only");
 	public static final ConfigSetting SELL_MENU_REQUIRES_USER_TO_HOLD_ITEM = new ConfigSetting(config, "auction setting.require user to hold item when using sell menu", false, "If enabled, when running just /ah sell, the user will need to hold the item in their hand, otherwise they just add it in the gui.");
 	public static final ConfigSetting OPEN_MAIN_AUCTION_HOUSE_AFTER_MENU_LIST = new ConfigSetting(config, "auction setting.open main auction house after listing using menu", true, "Should the main auction house be opened after the user lists an item using the sell menu?");
 	public static final ConfigSetting SELL_MENU_CLOSE_SENDS_TO_LISTING = new ConfigSetting(config, "auction setting.sell menu close sends to listings", true, "If true, when the player clicks the close button within the sell menu, it will send them to the main auction house");
@@ -153,7 +183,7 @@ public class Settings {
 	public static final ConfigSetting AUTO_BSTATS = new ConfigSetting(config, "auction setting.auto bstats", true, "Auto enable bStats");
 
 	public static final ConfigSetting ALLOW_ITEM_BUNDLES = new ConfigSetting(config, "auction setting.bundles.enabled", true, "If true, players can use -b in the sell command to bundle all similar items into a single item.");
-	public static final ConfigSetting ITEM_BUNDLE_ITEM = new ConfigSetting(config, "auction setting.bundles.item", XMaterial.GOLD_BLOCK.name());
+	public static final ConfigSetting ITEM_BUNDLE_ITEM = new ConfigSetting(config, "auction setting.bundles.item", CompMaterial.GOLD_BLOCK.name());
 	public static final ConfigSetting ITEM_BUNDLE_NAME = new ConfigSetting(config, "auction setting.bundles.name", "%item_name% &7Bundle");
 	public static final ConfigSetting ITEM_BUNDLE_LORE = new ConfigSetting(config, "auction setting.bundles.lore", Arrays.asList(
 			"&7This is a bundle item, it contains",
@@ -226,16 +256,66 @@ public class Settings {
 			"&cIf you overlap click types (ex. LEFT for both inspect and buy) things will go crazy."
 	);
 
+	public static final ConfigSetting CLICKS_FILTER_SORT_PRICE_OR_RECENT = new ConfigSetting(config, "auction setting.clicks.filter.sort by price or recent", "SHIFT_RIGHT",
+			"Valid Click Types",
+			"LEFT",
+			"RIGHT",
+			"SHIFT_LEFT",
+			"SHIFT_RIGHT",
+			"MIDDLE",
+			"DROP",
+			"",
+			"&cIf you overlap click types (ex. LEFT for both inspect and buy) things will go crazy."
+	);
+
+	public static final ConfigSetting CLICKS_FILTER_SORT_SALE_TYPE = new ConfigSetting(config, "auction setting.clicks.filter.sort sale type", "RIGHT",
+			"Valid Click Types",
+			"LEFT",
+			"RIGHT",
+			"SHIFT_LEFT",
+			"SHIFT_RIGHT",
+			"MIDDLE",
+			"DROP",
+			"",
+			"&cIf you overlap click types (ex. LEFT for both inspect and buy) things will go crazy."
+	);
+
+	public static final ConfigSetting CLICKS_FILTER_RESET = new ConfigSetting(config, "auction setting.clicks.filter.reset", "DROP",
+			"Valid Click Types",
+			"LEFT",
+			"RIGHT",
+			"SHIFT_LEFT",
+			"SHIFT_RIGHT",
+			"MIDDLE",
+			"DROP",
+			"",
+			"&cIf you overlap click types (ex. LEFT for both inspect and buy) things will go crazy."
+	);
+
+	public static final ConfigSetting CLICKS_FILTER_CATEGORY = new ConfigSetting(config, "auction setting.clicks.filter.change category", "LEFT",
+			"Valid Click Types",
+			"LEFT",
+			"RIGHT",
+			"SHIFT_LEFT",
+			"SHIFT_RIGHT",
+			"MIDDLE",
+			"DROP",
+			"",
+			"&cIf you overlap click types (ex. LEFT for both inspect and buy) things will go crazy."
+	);
+
+
 	/*  ===============================
 	 *         DATABASE OPTIONS
 	 *  ===============================*/
 	public static final ConfigSetting DATABASE_USE = new ConfigSetting(config, "database.use database", false, "Should the plugin use a database to store shop data?");
+	public static final ConfigSetting DATABASE_TABLE_PREFIX = new ConfigSetting(config, "database.table prefix", "auctionhouse_", "What prefix should be used for table names");
 	public static final ConfigSetting DATABASE_HOST = new ConfigSetting(config, "database.host", "localhost", "What is the connection url/host");
 	public static final ConfigSetting DATABASE_PORT = new ConfigSetting(config, "database.port", 3306, "What is the port to database (default is 3306)");
 	public static final ConfigSetting DATABASE_NAME = new ConfigSetting(config, "database.name", "plugin_dev", "What is the name of the database?");
 	public static final ConfigSetting DATABASE_USERNAME = new ConfigSetting(config, "database.username", "root", "What is the name of the user connecting?");
 	public static final ConfigSetting DATABASE_PASSWORD = new ConfigSetting(config, "database.password", "Password1.", "What is the password to the user connecting?");
-	public static final ConfigSetting DATABASE_USE_SSL = new ConfigSetting(config, "database.use ssl", true, "Should the database connection use ssl?");
+	public static final ConfigSetting DATABASE_CUSTOM_PARAMS = new ConfigSetting(config, "database.custom parameters", "?useUnicode=yes&characterEncoding=UTF-8&useServerPrepStmts=false&rewriteBatchedStatements=true&useSSL=true", "Leave this alone if you don't know what you're doing. Set to 'None' to use no custom connection params");
 
 
 	/*  ===============================
@@ -250,7 +330,11 @@ public class Settings {
 	public static final ConfigSetting DISCORD_MSG_PFP = new ConfigSetting(config, "discord.user.avatar picture", "https://cdn.kiranhart.com/spigot/auctionhouse/icon.png", "The avatar image of the discord user");
 	public static final ConfigSetting DISCORD_MSG_USE_RANDOM_COLOUR = new ConfigSetting(config, "discord.msg.use random colour", true, "colour of the message bar");
 	public static final ConfigSetting DISCORD_MSG_DEFAULT_COLOUR = new ConfigSetting(config, "discord.msg.default colour", "137-100-100", "The color of the embed, it needs to be in hsb format.", "Separate the numbers with a -");
+	public static final ConfigSetting DISCORD_MSG_DEFAULT_COLOUR_BID = new ConfigSetting(config, "discord.msg.default colour bid", "137-100-100", "The color of the embed during a bid, it needs to be in hsb format.", "Separate the numbers with a -");
+	public static final ConfigSetting DISCORD_MSG_DEFAULT_COLOUR_SALE = new ConfigSetting(config, "discord.msg.default colour sale", "137-100-100", "The color of the embed during a sale, it needs to be in hsb format.", "Separate the numbers with a -");
 	public static final ConfigSetting DISCORD_MSG_START_TITLE = new ConfigSetting(config, "discord.msg.auction start title", "New Auction Available", "The title of the message when a new auction is made");
+
+	public static final ConfigSetting DISCORD_MSG_START_TITLE_BID = new ConfigSetting(config, "discord.msg.auction start title bid", "New Bid Item Available", "The title of the message when a new biddable auction is made");
 	public static final ConfigSetting DISCORD_MSG_FINISH_TITLE = new ConfigSetting(config, "discord.msg.auction finish title", "Auction Finished", "The title of the message when an auction finishes");
 	public static final ConfigSetting DISCORD_MSG_BID_TITLE = new ConfigSetting(config, "discord.msg.auction bid title", "New Bid Placed", "The title of the message when a new bid is placed");
 
@@ -321,7 +405,7 @@ public class Settings {
 	 *           GLOBAL ITEMS
 	 *  ===============================*/
 
-	public static final ConfigSetting GUI_FILLER = new ConfigSetting(config, "gui.filler item", XMaterial.BLACK_STAINED_GLASS_PANE.name(), "An item to be used to fill empty gui slots, this will be", "removed in later versions to be done on a per gui basis");
+	public static final ConfigSetting GUI_FILLER = new ConfigSetting(config, "gui.filler item", CompMaterial.BLACK_STAINED_GLASS_PANE.name(), "An item to be used to fill empty gui slots, this will be", "removed in later versions to be done on a per gui basis");
 
 
 	public static final ConfigSetting GUI_BACK_BTN_SLOT = new ConfigSetting(config, "gui.global items.back button.slot", 48, "Valid Slots: 45 - 53");
@@ -455,17 +539,17 @@ public class Settings {
 	 *  ===============================*/
 	public static final ConfigSetting GUI_CONFIRM_BUY_TITLE = new ConfigSetting(config, "gui.confirm buy.title", "&7Are you sure?");
 	public static final ConfigSetting GUI_CONFIRM_FILL_BG_ON_QUANTITY = new ConfigSetting(config, "gui.confirm buy.fill background when buying quantity", true, "Should the empty slots be filled with an item", "when the player decides to buy a specific quantity of items?");
-	public static final ConfigSetting GUI_CONFIRM_BG_ITEM = new ConfigSetting(config, "gui.confirm buy.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name(), "This will only show when buying specific item quantities");
+	public static final ConfigSetting GUI_CONFIRM_BG_ITEM = new ConfigSetting(config, "gui.confirm buy.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name(), "This will only show when buying specific item quantities");
 
-	public static final ConfigSetting GUI_CONFIRM_INCREASE_QTY_ITEM = new ConfigSetting(config, "gui.confirm buy.increase button.item", XMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_CONFIRM_INCREASE_QTY_ITEM = new ConfigSetting(config, "gui.confirm buy.increase button.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
 	public static final ConfigSetting GUI_CONFIRM_INCREASE_QTY_NAME = new ConfigSetting(config, "gui.confirm buy.increase button.name", "&a&l+1");
 	public static final ConfigSetting GUI_CONFIRM_INCREASE_QTY_LORE = new ConfigSetting(config, "gui.confirm buy.increase button.lore", Collections.singletonList("&7Click to add &a+1 &7to purchase quantity"));
 
-	public static final ConfigSetting GUI_CONFIRM_DECREASE_QTY_ITEM = new ConfigSetting(config, "gui.confirm buy.decrease button.item", XMaterial.RED_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_CONFIRM_DECREASE_QTY_ITEM = new ConfigSetting(config, "gui.confirm buy.decrease button.item", CompMaterial.RED_STAINED_GLASS_PANE.name());
 	public static final ConfigSetting GUI_CONFIRM_DECREASE_QTY_NAME = new ConfigSetting(config, "gui.confirm buy.decrease button.name", "&c&l-1");
 	public static final ConfigSetting GUI_CONFIRM_DECREASE_QTY_LORE = new ConfigSetting(config, "gui.confirm buy.decrease button.lore", Collections.singletonList("&7Click to remove &c-1 &7from the purchase quantity"));
 
-	public static final ConfigSetting GUI_CONFIRM_QTY_INFO_ITEM = new ConfigSetting(config, "gui.confirm buy.qty info.item", XMaterial.PAPER.name());
+	public static final ConfigSetting GUI_CONFIRM_QTY_INFO_ITEM = new ConfigSetting(config, "gui.confirm buy.qty info.item", CompMaterial.PAPER.name());
 	public static final ConfigSetting GUI_CONFIRM_QTY_INFO_NAME = new ConfigSetting(config, "gui.confirm buy.qty info.name", "&ePurchase Information");
 	public static final ConfigSetting GUI_CONFIRM_QTY_INFO_LORE = new ConfigSetting(config, "gui.confirm buy.qty info.lore", Arrays.asList(
 			"&7Original Stack Size&f: &e%original_stack_size%",
@@ -565,17 +649,17 @@ public class Settings {
 	 *      TRANSACTIONS TYPE GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_TITLE = new ConfigSetting(config, "gui.transactions type.title", "&7&LTransactions");
-	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_BG_ITEM = new ConfigSetting(config, "gui.transactions type.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_BG_ITEM = new ConfigSetting(config, "gui.transactions type.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_ITEM = new ConfigSetting(config, "gui.transactions type.items.all transactions.item", XMaterial.PAPER.name());
+	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_ITEM = new ConfigSetting(config, "gui.transactions type.items.all transactions.item", CompMaterial.PAPER.name());
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_NAME = new ConfigSetting(config, "gui.transactions type.items.all transactions.name", "&eAll Transactions");
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_LORE = new ConfigSetting(config, "gui.transactions type.items.all transactions.lore", Collections.singletonList("&7Click to view all transactions"));
 
-	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_SELF_TRANSACTIONS_ITEM = new ConfigSetting(config, "gui.transactions type.items.self transactions.item", XMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_SELF_TRANSACTIONS_ITEM = new ConfigSetting(config, "gui.transactions type.items.self transactions.item", CompMaterial.DIAMOND.name());
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_SELF_TRANSACTIONS_NAME = new ConfigSetting(config, "gui.transactions type.items.self transactions.name", "&eYour Transactions");
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_SELF_TRANSACTIONS_LORE = new ConfigSetting(config, "gui.transactions type.items.self transactions.lore", Collections.singletonList("&7Click to view all your transactions"));
 
-	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_ITEM = new ConfigSetting(config, "gui.transactions type.items.delete transactions.item", XMaterial.LAVA_BUCKET.name());
+	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_ITEM = new ConfigSetting(config, "gui.transactions type.items.delete transactions.item", CompMaterial.LAVA_BUCKET.name());
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_NAME = new ConfigSetting(config, "gui.transactions type.items.delete transactions.name", "&cDelete Transactions");
 	public static final ConfigSetting GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_LORE = new ConfigSetting(config, "gui.transactions type.items.delete transactions.lore", Arrays.asList(
 			"&7Click to delete transactions older than a specified period",
@@ -663,13 +747,13 @@ public class Settings {
 	 *         INSPECTION GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_INSPECT_TITLE = new ConfigSetting(config, "gui.inspect.title", "&7&LInspecting Container");
-	public static final ConfigSetting GUI_INSPECT_BG_ITEM = new ConfigSetting(config, "gui.inspect.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_INSPECT_BG_ITEM = new ConfigSetting(config, "gui.inspect.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
 	/*  ===============================
 	 *         BANS GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_BANS_TITLE = new ConfigSetting(config, "gui.bans.title", "&7&LAuction House &f- &eBans");
-	public static final ConfigSetting GUI_BANS_BG_ITEM = new ConfigSetting(config, "gui.bans.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_BANS_BG_ITEM = new ConfigSetting(config, "gui.bans.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 	public static final ConfigSetting GUI_BANS_BAN_NAME = new ConfigSetting(config, "gui.bans.ban name", "&e%player_name%");
 	public static final ConfigSetting GUI_BANS_BAN_LORE = new ConfigSetting(config, "gui.bans.ban lore", Arrays.asList(
 			"&7Time Remaining&f: &e%ban_amount%",
@@ -683,47 +767,47 @@ public class Settings {
 	 *         FILTER GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_FILTER_TITLE = new ConfigSetting(config, "gui.filter.title", "&7Auction House - &eFilter Selection");
-	public static final ConfigSetting GUI_FILTER_BG_ITEM = new ConfigSetting(config, "gui.filter.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_FILTER_BG_ITEM = new ConfigSetting(config, "gui.filter.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_ALL_ITEM = new ConfigSetting(config, "gui.filter.items.all.item", XMaterial.HOPPER.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_ALL_ITEM = new ConfigSetting(config, "gui.filter.items.all.item", CompMaterial.HOPPER.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_ALL_NAME = new ConfigSetting(config, "gui.filter.items.all.name", "&e&lAll");
 	public static final ConfigSetting GUI_FILTER_ITEMS_ALL_LORE = new ConfigSetting(config, "gui.filter.items.all.lore", Collections.singletonList("&7Click to set the filter to&f: &eAll"));
 
 	public static final ConfigSetting GUI_FILTER_ITEMS_OWN_NAME = new ConfigSetting(config, "gui.filter.items.own.name", "&e&lYour Listings");
 	public static final ConfigSetting GUI_FILTER_ITEMS_OWN_LORE = new ConfigSetting(config, "gui.filter.items.own.lore", Collections.singletonList("&7Click to set the filter to&f: &eYour Listings"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_SEARCH_ITEM = new ConfigSetting(config, "gui.filter.items.search.item", XMaterial.NAME_TAG.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_SEARCH_ITEM = new ConfigSetting(config, "gui.filter.items.search.item", CompMaterial.NAME_TAG.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_SEARCH_NAME = new ConfigSetting(config, "gui.filter.items.search.name", "&e&lSearch");
 	public static final ConfigSetting GUI_FILTER_ITEMS_SEARCH_LORE = new ConfigSetting(config, "gui.filter.items.search.lore", Arrays.asList(
 			"&7Click to set the filter to&f: &eSearch",
 			"&7Current search phrase&f: &e%filter_search_phrase%"
 	));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_MISC_ITEM = new ConfigSetting(config, "gui.filter.items.misc.item", XMaterial.OAK_SIGN.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_MISC_ITEM = new ConfigSetting(config, "gui.filter.items.misc.item", CompMaterial.OAK_SIGN.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_MISC_NAME = new ConfigSetting(config, "gui.filter.items.misc.name", "&e&lMiscellaneous");
 	public static final ConfigSetting GUI_FILTER_ITEMS_MISC_LORE = new ConfigSetting(config, "gui.filter.items.misc.lore", Collections.singletonList("&7Click to set the filter to&f: &eMiscellaneous"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_ENCHANTS_ITEM = new ConfigSetting(config, "gui.filter.items.enchants.item", XMaterial.ENCHANTED_BOOK.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_ENCHANTS_ITEM = new ConfigSetting(config, "gui.filter.items.enchants.item", CompMaterial.ENCHANTED_BOOK.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_ENCHANTS_NAME = new ConfigSetting(config, "gui.filter.items.enchants.name", "&e&lEnchantments");
 	public static final ConfigSetting GUI_FILTER_ITEMS_ENCHANTS_LORE = new ConfigSetting(config, "gui.filter.items.enchants.lore", Collections.singletonList("&7Click to set the filter to&f: &eEnchantments"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_ARMOR_ITEM = new ConfigSetting(config, "gui.filter.items.armor.item", XMaterial.CHAINMAIL_CHESTPLATE.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_ARMOR_ITEM = new ConfigSetting(config, "gui.filter.items.armor.item", CompMaterial.CHAINMAIL_CHESTPLATE.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_ARMOR_NAME = new ConfigSetting(config, "gui.filter.items.armor.name", "&e&lArmor");
 	public static final ConfigSetting GUI_FILTER_ITEMS_ARMOR_LORE = new ConfigSetting(config, "gui.filter.items.armor.lore", Collections.singletonList("&7Click to set the filter to&f: &eArmor"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_WEAPONS_ITEM = new ConfigSetting(config, "gui.filter.items.weapons.item", XMaterial.DIAMOND_SWORD.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_WEAPONS_ITEM = new ConfigSetting(config, "gui.filter.items.weapons.item", CompMaterial.DIAMOND_SWORD.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_WEAPONS_NAME = new ConfigSetting(config, "gui.filter.items.weapons.name", "&e&lWeapons");
 	public static final ConfigSetting GUI_FILTER_ITEMS_WEAPONS_LORE = new ConfigSetting(config, "gui.filter.items.weapons.lore", Collections.singletonList("&7Click to set the filter to&f: &eWeapons"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_TOOLS_ITEM = new ConfigSetting(config, "gui.filter.items.tools.item", XMaterial.IRON_PICKAXE.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_TOOLS_ITEM = new ConfigSetting(config, "gui.filter.items.tools.item", CompMaterial.IRON_PICKAXE.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_TOOLS_NAME = new ConfigSetting(config, "gui.filter.items.tools.name", "&e&lTools");
 	public static final ConfigSetting GUI_FILTER_ITEMS_TOOLS_LORE = new ConfigSetting(config, "gui.filter.items.tools.lore", Collections.singletonList("&7Click to set the filter to&f: &eTools"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_SPAWNERS_ITEM = new ConfigSetting(config, "gui.filter.items.spawners.item", XMaterial.CREEPER_SPAWN_EGG.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_SPAWNERS_ITEM = new ConfigSetting(config, "gui.filter.items.spawners.item", CompMaterial.CREEPER_SPAWN_EGG.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_SPAWNERS_NAME = new ConfigSetting(config, "gui.filter.items.spawners.name", "&e&LSpawners");
 	public static final ConfigSetting GUI_FILTER_ITEMS_SPAWNERS_LORE = new ConfigSetting(config, "gui.filter.items.spawners.lore", Collections.singletonList("&7Click to set the filter to&f: &eSpawners"));
 
-	public static final ConfigSetting GUI_FILTER_ITEMS_BLOCKS_ITEM = new ConfigSetting(config, "gui.filter.items.blocks.item", XMaterial.GOLD_BLOCK.name());
+	public static final ConfigSetting GUI_FILTER_ITEMS_BLOCKS_ITEM = new ConfigSetting(config, "gui.filter.items.blocks.item", CompMaterial.GOLD_BLOCK.name());
 	public static final ConfigSetting GUI_FILTER_ITEMS_BLOCKS_NAME = new ConfigSetting(config, "gui.filter.items.blocks.name", "&e&lBlocks");
 	public static final ConfigSetting GUI_FILTER_ITEMS_BLOCKS_LORE = new ConfigSetting(config, "gui.filter.items.blocks.lore", Collections.singletonList("&7Click to set the filter to&f: &eBlocks"));
 
@@ -731,37 +815,37 @@ public class Settings {
 	 *      CUSTOM ITEM FILTER GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_FILTER_WHITELIST_TITLE = new ConfigSetting(config, "gui.filter whitelist.title", "&7Auction Filter - &eWhitelist");
-	public static final ConfigSetting GUI_FILTER_WHITELIST_BG_ITEM = new ConfigSetting(config, "gui.filter whitelist.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_BG_ITEM = new ConfigSetting(config, "gui.filter whitelist.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_BLOCKS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.blocks.item", XMaterial.GRASS_BLOCK.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_BLOCKS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.blocks.item", CompMaterial.GRASS_BLOCK.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_BLOCKS_NAME = new ConfigSetting(config, "gui.filter whitelist.items.blocks.name", "&e&lBlock Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_BLOCKS_LORE = new ConfigSetting(config, "gui.filter whitelist.items.blocks.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_FOOD_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.food.item", XMaterial.CAKE.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_FOOD_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.food.item", CompMaterial.CAKE.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_FOOD_NAME = new ConfigSetting(config, "gui.filter whitelist.items.food.name", "&e&lFood Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_FOOD_LORE = new ConfigSetting(config, "gui.filter whitelist.items.food.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ARMOR_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.armor.item", XMaterial.DIAMOND_HELMET.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ARMOR_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.armor.item", CompMaterial.DIAMOND_HELMET.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ARMOR_NAME = new ConfigSetting(config, "gui.filter whitelist.items.armor.name", "&e&LArmor Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ARMOR_LORE = new ConfigSetting(config, "gui.filter whitelist.items.armor.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_TOOLS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.tools.item", XMaterial.IRON_PICKAXE.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_TOOLS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.tools.item", CompMaterial.IRON_PICKAXE.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_TOOLS_NAME = new ConfigSetting(config, "gui.filter whitelist.items.tools.name", "&e&lTool Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_TOOLS_LORE = new ConfigSetting(config, "gui.filter whitelist.items.tools.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_SPAWNERS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.spawners.item", XMaterial.SPAWNER.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_SPAWNERS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.spawners.item", CompMaterial.SPAWNER.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_SPAWNERS_NAME = new ConfigSetting(config, "gui.filter whitelist.items.spawners.name", "&e&lSpawner Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_SPAWNERS_LORE = new ConfigSetting(config, "gui.filter whitelist.items.spawners.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ENCHANTS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.enchants.item", XMaterial.ENCHANTED_BOOK.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ENCHANTS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.enchants.item", CompMaterial.ENCHANTED_BOOK.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ENCHANTS_NAME = new ConfigSetting(config, "gui.filter whitelist.items.enchants.name", "&e&lEnchantment Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_ENCHANTS_LORE = new ConfigSetting(config, "gui.filter whitelist.items.enchants.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_WEAPONS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.weapons.item", XMaterial.DIAMOND_SWORD.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_WEAPONS_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.weapons.item", CompMaterial.DIAMOND_SWORD.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_WEAPONS_NAME = new ConfigSetting(config, "gui.filter whitelist.items.weapons.name", "&e&lWeapon Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_WEAPONS_LORE = new ConfigSetting(config, "gui.filter whitelist.items.weapons.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
-	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_MISC_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.misc.item", XMaterial.BONE_MEAL.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_MISC_ITEM = new ConfigSetting(config, "gui.filter whitelist.items.misc.item", CompMaterial.BONE_MEAL.name());
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_MISC_NAME = new ConfigSetting(config, "gui.filter whitelist.items.misc.name", "&e&lMiscellaneous Filters");
 	public static final ConfigSetting GUI_FILTER_WHITELIST_ITEMS_MISC_LORE = new ConfigSetting(config, "gui.filter whitelist.items.misc.lore", Collections.singletonList("&7Click to adjust the item whitelist for this filter"));
 
@@ -769,118 +853,307 @@ public class Settings {
 	 *      CUSTOM ITEM FILTER GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_FILTER_WHITELIST_LIST_TITLE = new ConfigSetting(config, "gui.filter whitelist list.title", "&7Filter Whitelist - &e%filter_category%");
-	public static final ConfigSetting GUI_FILTER_WHITELIST_LIST_BG_ITEM = new ConfigSetting(config, "gui.filter whitelist list.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_FILTER_WHITELIST_LIST_BG_ITEM = new ConfigSetting(config, "gui.filter whitelist list.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
 	/*  ===============================
-	 *       ITEM SELL/LIST GUI
+	 *    ITEM SELL LISTING TYPE GUI
 	 *  ===============================*/
-	public static final ConfigSetting GUI_SELL_TITLE = new ConfigSetting(config, "gui.sell.title", "&7Auction House - &eSelling Item");
-	public static final ConfigSetting GUI_SELL_BG_ITEM = new ConfigSetting(config, "gui.sell.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_TITLE = new ConfigSetting(config, "gui.sell listing type.title", "&7Auction House - &eSelect Listing Type");
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_BG_ITEM = new ConfigSetting(config, "gui.sell listing type.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_ITEM = new ConfigSetting(config, "gui.sell.items.buy now.item", XMaterial.SUNFLOWER.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_NAME = new ConfigSetting(config, "gui.sell.items.buy now.name", "&e&lBuy Now Price");
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_LORE = new ConfigSetting(config, "gui.sell.items.buy now.lore", Arrays.asList(
-			"&7The current buy now price is&f: %buy_now_price%",
-			"&7Click to edit the price"
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_BIN_ITEM = new ConfigSetting(config, "gui.sell listing type.items.bin.item", CompMaterial.SUNFLOWER.name());
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_BIN_NAME = new ConfigSetting(config, "gui.sell listing type.items.bin.name", "&e&lBin Item");
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_BIN_LORE = new ConfigSetting(config, "gui.sell listing type.items.bin.lore", Arrays.asList(
+			"&7A Bin item is an item that does not accept any",
+			"&7bids, it must be bought for the listed price.",
+			"",
+			"&7Click to list as &aBin Item"
 	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_STARTING_BID_ITEM = new ConfigSetting(config, "gui.sell.items.starting bid.item", XMaterial.SUNFLOWER.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_STARTING_BID_NAME = new ConfigSetting(config, "gui.sell.items.starting bid.name", "&e&lStarting Bid Price");
-	public static final ConfigSetting GUI_SELL_ITEMS_STARTING_BID_LORE = new ConfigSetting(config, "gui.sell.items.starting bid.lore", Arrays.asList(
-			"&7The starting bid price is&f: %starting_bid_price%",
-			"&7Click to edit the price"
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_AUCTION_ITEM = new ConfigSetting(config, "gui.sell listing type.items.auction.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_AUCTION_NAME = new ConfigSetting(config, "gui.sell listing type.items.auction.name", "&e&lAuction Item");
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_AUCTION_LORE = new ConfigSetting(config, "gui.sell listing type.items.auction.lore", Arrays.asList(
+			"&7An Auction item is an item that can be bid",
+			"&7on by multiple people, the highest bid wins.",
+			"",
+			"&7Click to list as an &aAuction"
 	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BID_INC_ITEM = new ConfigSetting(config, "gui.sell.items.bid inc.item", XMaterial.SUNFLOWER.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BID_INC_NAME = new ConfigSetting(config, "gui.sell.items.bid inc.name", "&e&lBid Increment Price");
-	public static final ConfigSetting GUI_SELL_ITEMS_BID_INC_LORE = new ConfigSetting(config, "gui.sell.items.bid inc.lore", Arrays.asList(
-			"&7The bid increment is&f: %bid_increment_price%",
-			"&7Click to edit the price"
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_RETURN_ITEM = new ConfigSetting(config, "gui.sell listing type.items.return.item", CompMaterial.BARRIER.name());
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_RETURN_NAME = new ConfigSetting(config, "gui.sell listing type.items.return.name", "&e&lAuction House");
+	public static final ConfigSetting GUI_SELL_LISTING_TYPE_ITEMS_RETURN_LORE = new ConfigSetting(config, "gui.sell listing type.items.return.lore", Arrays.asList(
+			"",
+			"&7Click to go to the &aAuction House"
 	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_LIST_TIME_ITEM = new ConfigSetting(config, "gui.sell.items.list time.item", XMaterial.CLOCK.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_LIST_TIME_NAME = new ConfigSetting(config, "gui.sell.items.list time.name", "&e&lListing Time");
-	public static final ConfigSetting GUI_SELL_ITEMS_LIST_TIME_LORE = new ConfigSetting(config, "gui.sell.items.list time.lore", Arrays.asList(
-			"&7The listing time is&f: &b%remaining_days%&fd &b%remaining_hours%&fh &b%remaining_minutes%&fm &b%remaining_seconds%&fs",
+	/*  ===============================
+	 *    ITEM SELL PLACE ITEM GUI
+	 *  ===============================*/
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_TITLE = new ConfigSetting(config, "gui.sell place item.title", "&7Auction House - &ePlace Item(s)");
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_BG_ITEM = new ConfigSetting(config, "gui.sell place item.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_CONTINUE_ITEM = new ConfigSetting(config, "gui.sell place item.items.continue.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_CONTINUE_NAME = new ConfigSetting(config, "gui.sell place item.items.continue.name", "&e&lContinue");
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_CONTINUE_LORE = new ConfigSetting(config, "gui.sell place item.items.continue.lore", Arrays.asList(
+			"",
+			"&7Click to continue to pricing"
+	));
+
+
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_BUNDLE_ITEM = new ConfigSetting(config, "gui.sell place item.items.bundle.item", CompMaterial.GOLD_BLOCK.name());
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_BUNDLE_NAME = new ConfigSetting(config, "gui.sell place item.items.bundle.name", "&e&lListing Bundle");
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_BUNDLE_LORE = new ConfigSetting(config, "gui.sell place item.items.bundle.lore", Arrays.asList(
+			"&7You are currently in the bundle",
+			"&7listing view.",
+			"",
+			"&7Click to list a single item instead"
+	));
+
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_SINGLE_ITEM = new ConfigSetting(config, "gui.sell place item.items.single.item", CompMaterial.DIAMOND.name());
+
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_SINGLE_NAME = new ConfigSetting(config, "gui.sell place item.items.single.name", "&e&lSingle Listing");
+	public static final ConfigSetting GUI_SELL_PLACE_ITEM_ITEMS_SINGLE_LORE = new ConfigSetting(config, "gui.sell place item.items.single.lore", Arrays.asList(
+			"&7You are currently in the single",
+			"&7item listing view.",
+			"",
+			"&7Click to list a bundle instead"
+	));
+
+	/*  ===============================
+	 *    ITEM SELL BIN GUI
+	 *  ===============================*/
+	public static final ConfigSetting GUI_SELL_BIN_TITLE = new ConfigSetting(config, "gui.sell bin item.title", "&7Auction House - &eBin Listing");
+	public static final ConfigSetting GUI_SELL_BIN_BG_ITEM = new ConfigSetting(config, "gui.sell bin item.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_CONTINUE_ITEM = new ConfigSetting(config, "gui.sell bin item.items.confirm.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_CONTINUE_NAME = new ConfigSetting(config, "gui.sell bin item.items.confirm.name", "&e&lList Item");
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_CONTINUE_LORE = new ConfigSetting(config, "gui.sell bin item.items.confirm.lore", Arrays.asList(
+			"",
+			"&7Click to list this item"
+	));
+
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_TIME_ITEM = new ConfigSetting(config, "gui.sell bin item.items.time.item", CompMaterial.CLOCK.name());
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_TIME_NAME = new ConfigSetting(config, "gui.sell bin item.items.time.name", "&e&lListing Time");
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_TIME_LORE = new ConfigSetting(config, "gui.sell bin item.items.time.lore", Arrays.asList(
+			"",
+			"&eCurrent Time: &b%remaining_days%&fd &b%remaining_hours%&fh &b%remaining_minutes%&fm &b%remaining_seconds%&Fs",
+			"",
 			"&7Click to edit the listing time"
 	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_CONFIRM_LISTING_ITEM = new ConfigSetting(config, "gui.sell.items.confirm listing.item", XMaterial.LIME_STAINED_GLASS_PANE.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_CONFIRM_LISTING_NAME = new ConfigSetting(config, "gui.sell.items.confirm listing.name", "&a&lConfirm Listing");
-	public static final ConfigSetting GUI_SELL_ITEMS_CONFIRM_LISTING_LORE = new ConfigSetting(config, "gui.sell.items.confirm listing.lore", Collections.singletonList("&7Click to confirm the listing of this item."));
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PRICE_ITEM = new ConfigSetting(config, "gui.sell bin item.items.price.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PRICE_NAME = new ConfigSetting(config, "gui.sell bin item.items.price.name", "&e&lPrice");
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PRICE_LORE = new ConfigSetting(config, "gui.sell bin item.items.price.lore", Arrays.asList(
+			"",
+			"&7The current price if &F: &a$%listing_bin_price%",
+			"",
+			"&7Click to edit the listing price"
+	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_ENABLED_ITEM = new ConfigSetting(config, "gui.sell.items.bidding enabled.item", XMaterial.LIME_DYE.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_ENABLED_NAME = new ConfigSetting(config, "gui.sell.items.bidding enabled.name", "&a&lBidding Enabled");
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_ENABLED_LORE = new ConfigSetting(config, "gui.sell.items.bidding enabled.lore", Collections.singletonList("&7Click to &cDisable &7bidding"));
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_ENABLED_ITEM = new ConfigSetting(config, "gui.sell bin item.items.partial enabled.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_ENABLED_NAME = new ConfigSetting(config, "gui.sell bin item.items.partial enabled.name", "&e&lQuantity Purchase");
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_ENABLED_LORE = new ConfigSetting(config, "gui.sell bin item.items.partial enabled.lore", Arrays.asList(
+			"",
+			"&7You have partial purchases &aenabled",
+			"",
+			"&7Click to &cdisable &7partial purchases"
+	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_DISABLED_ITEM = new ConfigSetting(config, "gui.sell.items.bidding disabled.item", XMaterial.RED_DYE.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_DISABLED_NAME = new ConfigSetting(config, "gui.sell.items.bidding disabled.name", "&c&lBidding Disabled");
-	public static final ConfigSetting GUI_SELL_ITEMS_BIDDING_DISABLED_LORE = new ConfigSetting(config, "gui.sell.items.bidding disabled.lore", Collections.singletonList("&7Click to &aEnable &7bidding"));
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_DISABLED_ITEM = new ConfigSetting(config, "gui.sell bin item.items.partial disabled.item", CompMaterial.RED_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_DISABLED_NAME = new ConfigSetting(config, "gui.sell bin item.items.partial disabled.name", "&e&lQuantity Purchase");
+	public static final ConfigSetting GUI_SELL_BIN_ITEM_ITEMS_PARTIAL_DISABLED_LORE = new ConfigSetting(config, "gui.sell bin item.items.partial disabled.lore", Arrays.asList(
+			"",
+			"&7You have partial purchases &cdisabled",
+			"",
+			"&7Click to &aenable &7partial purchases"
+	));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_ENABLED_ITEM = new ConfigSetting(config, "gui.sell.items.buy now enabled.item", XMaterial.LIME_DYE.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_ENABLED_NAME = new ConfigSetting(config, "gui.sell.items.buy now enabled.name", "&a&lBuy Now Enabled");
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_ENABLED_LORE = new ConfigSetting(config, "gui.sell.items.buy now enabled.lore", Collections.singletonList("&7Click to &cDisable &7buy now"));
 
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_DISABLED_ITEM = new ConfigSetting(config, "gui.sell.items.buy now disabled.item", XMaterial.RED_DYE.name());
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_DISABLED_NAME = new ConfigSetting(config, "gui.sell.items.buy now disabled.name", "&c&lBuy Now Disabled");
-	public static final ConfigSetting GUI_SELL_ITEMS_BUY_NOW_DISABLED_LORE = new ConfigSetting(config, "gui.sell.items.buy now disabled.lore", Collections.singletonList("&7Click to &aEnable &7buy now"));
+	/*  ===============================
+	 *    ITEM SELL AUCTION GUI
+	 *  ===============================*/
+
+	public static final ConfigSetting GUI_SELL_AUCTION_TITLE = new ConfigSetting(config, "gui.sell auction item.title", "&7Auction House - &eAuction Listing");
+	public static final ConfigSetting GUI_SELL_AUCTION_BG_ITEM = new ConfigSetting(config, "gui.sell auction item.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_TIME_ITEM = new ConfigSetting(config, "gui.sell auction item.items.time.item", CompMaterial.CLOCK.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_TIME_NAME = new ConfigSetting(config, "gui.sell auction item.items.time.name", "&e&lListing Time");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_TIME_LORE = new ConfigSetting(config, "gui.sell auction item.items.time.lore", Arrays.asList(
+			"",
+			"&eCurrent Time: &b%remaining_days%&fd &b%remaining_hours%&fh &b%remaining_minutes%&fm &b%remaining_seconds%&Fs",
+			"",
+			"&7Click to edit the listing time"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_PRICE_ITEM = new ConfigSetting(config, "gui.sell auction item.items.bin price.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_PRICE_NAME = new ConfigSetting(config, "gui.sell auction item.items.bin price.name", "&e&lBuyout Price");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_PRICE_LORE = new ConfigSetting(config, "gui.sell auction item.items.bin price.lore", Arrays.asList(
+			"",
+			"&7The current buyout price is&F: &a$%listing_bin_price%",
+			"",
+			"&7Click to edit the buyout price"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_STARTING_PRICE_ITEM = new ConfigSetting(config, "gui.sell auction item.items.starting price.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_STARTING_PRICE_NAME = new ConfigSetting(config, "gui.sell auction item.items.starting price.name", "&e&lStarting Price");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_STARTING_PRICE_LORE = new ConfigSetting(config, "gui.sell auction item.items.starting price.lore", Arrays.asList(
+			"",
+			"&7The current starting price is&F: &a$%listing_start_price%",
+			"",
+			"&7Click to edit the starting price"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_INCREMENT_PRICE_ITEM = new ConfigSetting(config, "gui.sell auction item.items.increment price.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_INCREMENT_PRICE_NAME = new ConfigSetting(config, "gui.sell auction item.items.increment price.name", "&e&lIncrement Price");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_INCREMENT_PRICE_LORE = new ConfigSetting(config, "gui.sell auction item.items.increment price.lore", Arrays.asList(
+			"",
+			"&7The current increment price is&F: &a$%listing_increment_price%",
+			"",
+			"&7Click to edit the increment price"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_ENABLED_ITEM = new ConfigSetting(config, "gui.sell auction item.items.buyout enabled.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_ENABLED_NAME = new ConfigSetting(config, "gui.sell auction item.items.buyout enabled.name", "&e&lAuction Buyout");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_ENABLED_LORE = new ConfigSetting(config, "gui.sell auction item.items.buyout enabled.lore", Arrays.asList(
+			"",
+			"&7You have buyout &aenabled",
+			"",
+			"&7Click to &cdisable &7auction buyout"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_DISABLED_ITEM = new ConfigSetting(config, "gui.sell auction item.items.buyout disabled.item", CompMaterial.RED_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_DISABLED_NAME = new ConfigSetting(config, "gui.sell auction item.items.buyout disabled.name", "&e&lAuction Buyout");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_BUYOUT_DISABLED_LORE = new ConfigSetting(config, "gui.sell auction item.items.buyout disabled.lore", Arrays.asList(
+			"",
+			"&7You have buyout &cdisabled",
+			"",
+			"&7Click to &aenable &7auction buyout"
+	));
+
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_CONTINUE_ITEM = new ConfigSetting(config, "gui.sell auction item.items.confirm.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_CONTINUE_NAME = new ConfigSetting(config, "gui.sell auction item.items.confirm.name", "&e&lList Item");
+	public static final ConfigSetting GUI_SELL_AUCTION_ITEM_ITEMS_CONTINUE_LORE = new ConfigSetting(config, "gui.sell auction item.items.confirm.lore", Arrays.asList(
+			"",
+			"&7Click to list this item"
+	));
 
 	/*  ===============================
 	 *         AH STATS GUI
 	 *  ===============================*/
-	public static final ConfigSetting GUI_STATS_TITLE = new ConfigSetting(config, "gui.stats.title", "&7Auction House - &eStatistics");
-	public static final ConfigSetting GUI_STATS_BG_ITEM = new ConfigSetting(config, "gui.stats.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_TITLE = new ConfigSetting(config, "gui.stat view select.title", "&7Auction House - &eStatistics");
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_BG_ITEM = new ConfigSetting(config, "gui.stat view select.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_STATS_ITEMS_PERSONAL_USE_HEAD = new ConfigSetting(config, "gui.stats.items.personal.use head", true);
-	public static final ConfigSetting GUI_STATS_ITEMS_PERSONAL_ITEM = new ConfigSetting(config, "gui.stats.items.personal.item", XMaterial.DIAMOND.name());
-	public static final ConfigSetting GUI_STATS_ITEMS_PERSONAL_NAME = new ConfigSetting(config, "gui.stats.items.personal.name", "&9&lPersonal Stats");
-	public static final ConfigSetting GUI_STATS_ITEMS_PERSONAL_LORE = new ConfigSetting(config, "gui.stats.items.personal.lore", Arrays.asList(
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_PERSONAL_USE_HEAD = new ConfigSetting(config, "gui.stat view select.items.personal.use head", true);
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_PERSONAL_ITEM = new ConfigSetting(config, "gui.stat view select.items.personal.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_PERSONAL_NAME = new ConfigSetting(config, "gui.stat view select.items.personal.name", "&e&lPersonal Statistics");
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_PERSONAL_LORE = new ConfigSetting(config, "gui.stat view select.items.personal.lore", Collections.singletonList("&7Click to view your own stats"));
+
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_LEADERBOARD_ITEM = new ConfigSetting(config, "gui.stat view select.items.leaderboard.item", CompMaterial.NETHER_STAR.name());
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_LEADERBOARD_NAME = new ConfigSetting(config, "gui.stat view select.items.leaderboard.name", "&e&lLeaderboard");
+	public static final ConfigSetting GUI_STATS_VIEW_SELECT_ITEMS_LEADERBOARD_LORE = new ConfigSetting(config, "gui.stat view select.items.leaderboard.lore", Collections.singletonList("&7Click to view server leaderboard"));
+
+	public static final ConfigSetting GUI_STATS_SELF_TITLE = new ConfigSetting(config, "gui.stat view self.items.title", "&7Auction House - &eYour Stats");
+	public static final ConfigSetting GUI_STATS_SELF_BG_ITEM = new ConfigSetting(config, "gui.stat view self.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_AUCTION_ITEM = new ConfigSetting(config, "gui.stat view self.items.created auction.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_AUCTION_NAME = new ConfigSetting(config, "gui.stat view self.items.created auction.name", "&e&lCreated Auctions");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_AUCTION_LORE = new ConfigSetting(config, "gui.stat view self.items.created auction.lore", Collections.singletonList("&7You created &e%created_auctions% &7auctions"));
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_BIN_ITEM = new ConfigSetting(config, "gui.stat view self.items.created bin.item", CompMaterial.HOPPER_MINECART.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_BIN_NAME = new ConfigSetting(config, "gui.stat view self.items.created bin.name", "&e&lCreated Bins");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_CREATED_BIN_LORE = new ConfigSetting(config, "gui.stat view self.items.created bin.lore", Collections.singletonList("&7You created &e%created_bins% &7bins"));
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_AUCTION_ITEM = new ConfigSetting(config, "gui.stat view self.items.sold auction.item", CompMaterial.LADDER.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_AUCTION_NAME = new ConfigSetting(config, "gui.stat view self.items.sold auction.name", "&e&LSold Auctions");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_AUCTION_LORE = new ConfigSetting(config, "gui.stat view self.items.sold auction.lore", Collections.singletonList("&7You sold &e%sold_auctions% &7auction(s)"));
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_BIN_ITEM = new ConfigSetting(config, "gui.stat view self.items.sold bin.item", CompMaterial.CHEST.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_BIN_NAME = new ConfigSetting(config, "gui.stat view self.items.sold bin.name", "&e&LSold Bins");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_SOLD_BIN_LORE = new ConfigSetting(config, "gui.stat view self.items.sold bin.lore", Collections.singletonList("&7You sold &e%sold_bins% &7bin(s)"));
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_EARNED_ITEM = new ConfigSetting(config, "gui.stat view self.items.money earned.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_EARNED_NAME = new ConfigSetting(config, "gui.stat view self.items.money earned.name", "&e&LMoney Earned");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_EARNED_LORE = new ConfigSetting(config, "gui.stat view self.items.money earned.lore", Collections.singletonList("&7You earned &a$%money_earned%"));
+
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_SPENT_ITEM = new ConfigSetting(config, "gui.stat view self.items.money spent.item", CompMaterial.RED_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_SPENT_NAME = new ConfigSetting(config, "gui.stat view self.items.money spent.name", "&e&LMoney Spent");
+	public static final ConfigSetting GUI_STATS_SELF_ITEMS_MONEY_SPENT_LORE = new ConfigSetting(config, "gui.stat view self.items.money spent.lore", Collections.singletonList("&7You spent &c$%money_spent%"));
+
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_TITLE = new ConfigSetting(config, "gui.stat view leaderboard.items.title", "&7Auction House - &eStat Leaderboard");
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_BG_ITEM = new ConfigSetting(config, "gui.stat view leaderboard.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_ITEMS_PLAYER_NAME = new ConfigSetting(config, "gui.stat view leaderboard.items.player.name", "&e&l%player_name%");
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_ITEMS_PLAYER_LORE = new ConfigSetting(config, "gui.stat view leaderboard.items.player.lore", Arrays.asList(
 			"",
-			"&7Auctions Created: &e%auctions_created%",
-			"&7Auctions Sold: &e%auctions_sold%",
-			"&7Auctions Expired: &e%auctions_expired%",
-			"",
-			"&7Money Earned: &a$%auctions_money_earned%",
-			"&7Money Spent: &a$%auctions_money_spent%"
+			"&7Statistic&f: &e%auction_statistic_name%",
+			"&7Value&f: &e%auction_statistic_value%",
+			""
 	));
 
-	public static final ConfigSetting GUI_STATS_ITEMS_GLOBAL_ITEM = new ConfigSetting(config, "gui.stats.items.global.item", XMaterial.NETHER_STAR.name());
-	public static final ConfigSetting GUI_STATS_ITEMS_GLOBAL_NAME = new ConfigSetting(config, "gui.stats.items.global.name", "&6&LGlobal Stats");
-	public static final ConfigSetting GUI_STATS_ITEMS_GLOBAL_LORE = new ConfigSetting(config, "gui.stats.items.global.lore", Arrays.asList(
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_ITEMS_STAT_ITEM = new ConfigSetting(config, "gui.stat view leaderboard.items.stat.item", CompMaterial.NETHER_STAR.name());
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_ITEMS_STAT_NAME = new ConfigSetting(config, "gui.stat view leaderboard.items.stat.name", "&e&lStatistic Type");
+	public static final ConfigSetting GUI_STATS_LEADERBOARD_ITEMS_STAT_LORE = new ConfigSetting(config, "gui.stat view leaderboard.items.stat.lore", Arrays.asList(
 			"",
-			"&7Auctions Created: &e%auctions_created%",
-			"&7Auctions Sold: &e%auctions_sold%",
-			"&7Auctions Expired: &e%auctions_expired%",
-			"",
-			"&7Money Spent: &a$%auctions_money_spent%"
+			"&7Selected&f: &e%statistic_name%",
+			"&7Click to &achange &7viewed statistic",
+			""
 	));
+
+	// other player
+	public static final ConfigSetting GUI_STATS_SEARCH_TITLE = new ConfigSetting(config, "gui.stat view other.items.title", "&7Auction House - &e%player_name% Stats");
+	public static final ConfigSetting GUI_STATS_SEARCH_BG_ITEM = new ConfigSetting(config, "gui.stat view other.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_AUCTION_ITEM = new ConfigSetting(config, "gui.stat view other.items.created auction.item", CompMaterial.DIAMOND.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_AUCTION_NAME = new ConfigSetting(config, "gui.stat view other.items.created auction.name", "&e&lCreated Auctions");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_AUCTION_LORE = new ConfigSetting(config, "gui.stat view other.items.created auction.lore", Collections.singletonList("&7They created &e%created_auctions% &7auctions"));
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_BIN_ITEM = new ConfigSetting(config, "gui.stat view other.items.created bin.item", CompMaterial.HOPPER_MINECART.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_BIN_NAME = new ConfigSetting(config, "gui.stat view other.items.created bin.name", "&e&lCreated Bins");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_CREATED_BIN_LORE = new ConfigSetting(config, "gui.stat view other.items.created bin.lore", Collections.singletonList("&7They created &e%created_bins% &7bins"));
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_AUCTION_ITEM = new ConfigSetting(config, "gui.stat view other.items.sold auction.item", CompMaterial.LADDER.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_AUCTION_NAME = new ConfigSetting(config, "gui.stat view other.items.sold auction.name", "&e&LSold Auctions");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_AUCTION_LORE = new ConfigSetting(config, "gui.stat view other.items.sold auction.lore", Collections.singletonList("&7They sold &e%sold_auctions% &7auction(s)"));
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_BIN_ITEM = new ConfigSetting(config, "gui.stat view other.items.sold bin.item", CompMaterial.CHEST.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_BIN_NAME = new ConfigSetting(config, "gui.stat view other.items.sold bin.name", "&e&LSold Bins");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_SOLD_BIN_LORE = new ConfigSetting(config, "gui.stat view other.items.sold bin.lore", Collections.singletonList("&7They &e%sold_bins% &7bin(s)"));
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_EARNED_ITEM = new ConfigSetting(config, "gui.stat view other.items.money earned.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_EARNED_NAME = new ConfigSetting(config, "gui.stat view other.items.money earned.name", "&e&LMoney Earned");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_EARNED_LORE = new ConfigSetting(config, "gui.stat view other.items.money earned.lore", Collections.singletonList("&7They earned &a$%money_earned%"));
+
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_SPENT_ITEM = new ConfigSetting(config, "gui.stat view other.items.money spent.item", CompMaterial.RED_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_SPENT_NAME = new ConfigSetting(config, "gui.stat view other.items.money spent.name", "&e&LMoney Spent");
+	public static final ConfigSetting GUI_STATS_SEARCH_ITEMS_MONEY_SPENT_LORE = new ConfigSetting(config, "gui.stat view other.items.money spent.lore", Collections.singletonList("&7They spent &c$%money_spent%"));
+
 
 	/*  ===============================
 	 *       EXPIRED ITEMS ADMIN GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_EXPIRED_ITEMS_ADMIN_TITLE = new ConfigSetting(config, "gui.expired items admin.title", "&7Auction House - &eAdmin Expired");
-	public static final ConfigSetting GUI_EXPIRED_ITEMS_ADMIN_BG_ITEM = new ConfigSetting(config, "gui.expired items admin.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_EXPIRED_ITEMS_ADMIN_BG_ITEM = new ConfigSetting(config, "gui.expired items admin.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 	public static final ConfigSetting GUI_EXPIRED_ITEMS_ADMIN_ITEMS_LORE = new ConfigSetting(config, "gui.expired items admin.item lore", Collections.singletonList("&7Click to delete this item"));
 
 	/*  ===============================
 	 *         ITEM ADMIN GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_ITEM_ADMIN_TITLE = new ConfigSetting(config, "gui.item admin.title", "&7Auction House - &eAdmin Item");
-	public static final ConfigSetting GUI_ITEM_ADMIN_BG_ITEM = new ConfigSetting(config, "gui.item admin.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_ITEM_ADMIN_BG_ITEM = new ConfigSetting(config, "gui.item admin.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_RETURN_ITEM = new ConfigSetting(config, "gui.item admin.items.send to player.item", XMaterial.ENDER_CHEST.name());
+	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_RETURN_ITEM = new ConfigSetting(config, "gui.item admin.items.send to player.item", CompMaterial.ENDER_CHEST.name());
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_RETURN_NAME = new ConfigSetting(config, "gui.item admin.items.send to player.name", "&a&lReturn to player");
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_RETURN_LORE = new ConfigSetting(config, "gui.item admin.items.send to player.lore", Collections.singletonList("&7Click to return this item to the seller"));
 
-	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_CLAIM_ITEM = new ConfigSetting(config, "gui.item admin.items.claim item.item", XMaterial.HOPPER.name());
+	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_CLAIM_ITEM = new ConfigSetting(config, "gui.item admin.items.claim item.item", CompMaterial.HOPPER.name());
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_CLAIM_NAME = new ConfigSetting(config, "gui.item admin.items.claim item.name", "&a&lClaim Item");
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_CLAIM_LORE = new ConfigSetting(config, "gui.item admin.items.claim item.lore", Collections.singletonList("&7Click to claim this item as yours"));
 
-	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_DELETE_ITEM = new ConfigSetting(config, "gui.item admin.items.delete item.item", XMaterial.BARRIER.name());
+	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_DELETE_ITEM = new ConfigSetting(config, "gui.item admin.items.delete item.item", CompMaterial.BARRIER.name());
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_DELETE_NAME = new ConfigSetting(config, "gui.item admin.items.delete item.name", "&a&lDelete Item");
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_DELETE_LORE = new ConfigSetting(config, "gui.item admin.items.delete item.lore", Collections.singletonList("&7Click to delete this item"));
 
-	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_COPY_ITEM = new ConfigSetting(config, "gui.item admin.items.copy item.item", XMaterial.REPEATER.name());
+	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_COPY_ITEM = new ConfigSetting(config, "gui.item admin.items.copy item.item", CompMaterial.REPEATER.name());
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_COPY_NAME = new ConfigSetting(config, "gui.item admin.items.copy item.name", "&a&LCopy Item");
 	public static final ConfigSetting GUI_ITEM_ADMIN_ITEMS_COPY_LORE = new ConfigSetting(config, "gui.item admin.items.copy item.lore", Collections.singletonList("&7Click to copy this item"));
 
@@ -888,13 +1161,13 @@ public class Settings {
 	 *         BIDDING GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_BIDDING_TITLE = new ConfigSetting(config, "gui.bidding.title", "&7Auction House - &eBidding");
-	public static final ConfigSetting GUI_BIDDING_BG_ITEM = new ConfigSetting(config, "gui.bidding.bg item", XMaterial.BLACK_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_BIDDING_BG_ITEM = new ConfigSetting(config, "gui.bidding.bg item", CompMaterial.BLACK_STAINED_GLASS_PANE.name());
 
-	public static final ConfigSetting GUI_BIDDING_ITEMS_DEFAULT_ITEM = new ConfigSetting(config, "gui.bidding.items.default amount.item", XMaterial.SUNFLOWER.name());
+	public static final ConfigSetting GUI_BIDDING_ITEMS_DEFAULT_ITEM = new ConfigSetting(config, "gui.bidding.items.default amount.item", CompMaterial.SUNFLOWER.name());
 	public static final ConfigSetting GUI_BIDDING_ITEMS_DEFAULT_NAME = new ConfigSetting(config, "gui.bidding.items.default amount.name", "&a&LDefault Amount");
 	public static final ConfigSetting GUI_BIDDING_ITEMS_DEFAULT_LORE = new ConfigSetting(config, "gui.bidding.items.default amount.lore", Collections.singletonList("&7Click to bid default amount"));
 
-	public static final ConfigSetting GUI_BIDDING_ITEMS_CUSTOM_ITEM = new ConfigSetting(config, "gui.bidding.items.custom amount.item", XMaterial.OAK_SIGN.name());
+	public static final ConfigSetting GUI_BIDDING_ITEMS_CUSTOM_ITEM = new ConfigSetting(config, "gui.bidding.items.custom amount.item", CompMaterial.OAK_SIGN.name());
 	public static final ConfigSetting GUI_BIDDING_ITEMS_CUSTOM_NAME = new ConfigSetting(config, "gui.bidding.items.custom amount.name", "&a&lCustom Amount");
 	public static final ConfigSetting GUI_BIDDING_ITEMS_CUSTOM_LORE = new ConfigSetting(config, "gui.bidding.items.custom amount.lore", Collections.singletonList("&7Click to bid a custom amount"));
 
@@ -902,7 +1175,7 @@ public class Settings {
 	 *         BUNDLES GUI
 	 *  ===============================*/
 	public static final ConfigSetting GUI_CREATE_BUNDLE_TITLE = new ConfigSetting(config, "gui.create bundle.title", "&7Auction House - &eBundle Items");
-	public static final ConfigSetting GUI_CREATE_BUNDLE_CONFIRM_ITEM = new ConfigSetting(config, "gui.create bundle.items.confirm.item", XMaterial.LIME_STAINED_GLASS_PANE.name());
+	public static final ConfigSetting GUI_CREATE_BUNDLE_CONFIRM_ITEM = new ConfigSetting(config, "gui.create bundle.items.confirm.item", CompMaterial.LIME_STAINED_GLASS_PANE.name());
 	public static final ConfigSetting GUI_CREATE_BUNDLE_CONFIRM_NAME = new ConfigSetting(config, "gui.create bundle.items.confirm.name", "&a&LConfirm");
 	public static final ConfigSetting GUI_CREATE_BUNDLE_CONFIRM_LORE = new ConfigSetting(config, "gui.create bundle.items.confirm.lore", Collections.singletonList("&7Click to confirm listing"));
 
@@ -948,6 +1221,7 @@ public class Settings {
 	public static final ConfigSetting AUCTION_STACK_PURCHASE_CONTROLS_INSPECTION = new ConfigSetting(config, "auction stack.controls.inspection", Collections.singletonList("&eShift Right-Click to inspect"), "This will only be added to the control lore if the item can be inspected (skulker box/bundled item)");
 	public static final ConfigSetting AUCTION_STACK_PURCHASE_CONTROLS_ACCEPT_BID = new ConfigSetting(config, "auction stack.controls.accept bid", Collections.singletonList("&eRight-Click to accept the current bid"), "This will only show on items within the active listings menu on biddable items.");
 	public static final ConfigSetting AUCTION_STACK_PURCHASE_CONTROLS_CANCEL_ITEM = new ConfigSetting(config, "auction stack.controls.cancel item", Collections.singletonList("&eLeft-Click to cancel this listing"));
+	public static final ConfigSetting AUCTION_STACK_LISTING_PREVIEW_ITEM = new ConfigSetting(config, "auction stack.controls.preview item", Collections.singletonList("&ePreviewing Listing"));
 
 	public static final ConfigSetting AUCTION_STACK_PURCHASE_CONTROLS_BID_ON = new ConfigSetting(config, "auction stack.controls.using bid", Arrays.asList(
 			"&eLeft-Click&f: &bBid",

@@ -1,9 +1,27 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
 import ca.tweetzy.core.commands.AbstractCommand;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import ca.tweetzy.core.compatibility.ServerVersion;
-import ca.tweetzy.core.compatibility.XMaterial;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
@@ -33,19 +51,20 @@ public final class CommandMarkChest extends AbstractCommand {
 		if (CommandMiddleware.handle(player) == ReturnType.FAILURE) return ReturnType.FAILURE;
 
 		final Block targetBlock = player.getTargetBlock(null, 10);
-		if (targetBlock.getType() != XMaterial.CHEST.parseMaterial()) return ReturnType.FAILURE;
+		if (targetBlock.getType() != CompMaterial.CHEST.parseMaterial()) return ReturnType.FAILURE;
 
 		final Chest chest = (Chest) targetBlock.getState();
-		final NamespacedKey key = new NamespacedKey(AuctionHouse.getInstance(), "AuctionHouseMarkedChest");
+		final AuctionHouse instance = AuctionHouse.getInstance();
+		final NamespacedKey key = new NamespacedKey(instance, "AuctionHouseMarkedChest");
 
 		if (chest.getPersistentDataContainer().has(key, PersistentDataType.BYTE)) {
 			chest.getPersistentDataContainer().remove(key);
 			chest.update(true);
-			AuctionHouse.getInstance().getLocale().getMessage("general.unmarked chest").sendPrefixedMessage(player);
+			instance.getLocale().getMessage("general.unmarked chest").sendPrefixedMessage(player);
 		} else {
 			chest.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
 			chest.update(true);
-			AuctionHouse.getInstance().getLocale().getMessage("general.marked chest").sendPrefixedMessage(player);
+			instance.getLocale().getMessage("general.marked chest").sendPrefixedMessage(player);
 		}
 
 		return ReturnType.SUCCESS;

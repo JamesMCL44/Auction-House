@@ -1,17 +1,36 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis.confirmation;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
+import ca.tweetzy.auctionhouse.api.AuctionAPI;
 import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
 import ca.tweetzy.auctionhouse.auction.enums.AuctionStackType;
 import ca.tweetzy.auctionhouse.guis.AbstractPlaceholderGui;
 import ca.tweetzy.auctionhouse.guis.GUIActiveAuctions;
 import ca.tweetzy.auctionhouse.settings.Settings;
+import ca.tweetzy.core.hooks.EconomyManager;
 import ca.tweetzy.core.utils.TextUtils;
-import ca.tweetzy.core.utils.items.TItemBuilder;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.event.inventory.ClickType;
-
-import java.util.Objects;
 
 /**
  * The current file has been created by Kiran Hart
@@ -35,9 +54,9 @@ public class GUIConfirmCancel extends AbstractPlaceholderGui {
 	}
 
 	private void draw() {
-		setItems(0, 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_CANCEL_YES_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_CANCEL_YES_NAME.getString()).setLore(Settings.GUI_CONFIRM_CANCEL_YES_LORE.getStringList()).toItemStack());
+		setItems(0, 3, getConfirmCancelYesItem());
 		setItem(0, 4, this.auctionItem.getDisplayStack(AuctionStackType.ACTIVE_AUCTIONS_LIST));
-		setItems(5, 8, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_CANCEL_NO_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_CANCEL_NO_NAME.getString()).setLore(Settings.GUI_CONFIRM_CANCEL_NO_LORE.getStringList()).toItemStack());
+		setItems(5, 8, getConfirmCancelNoItem());
 
 		setActionForRange(5, 8, ClickType.LEFT, e -> e.manager.showGUI(e.player, new GUIActiveAuctions(this.auctionPlayer)));
 		setActionForRange(0, 3, ClickType.LEFT, e -> {
@@ -49,6 +68,18 @@ public class GUIConfirmCancel extends AbstractPlaceholderGui {
 			}
 
 			located.setExpired(true);
+
+			if (Settings.BIDDING_TAKES_MONEY.getBoolean() && !located.getHighestBidder().equals(located.getOwner())) {
+				final OfflinePlayer oldBidder = Bukkit.getOfflinePlayer(located.getHighestBidder());
+
+				EconomyManager.deposit(oldBidder, located.getCurrentPrice());
+
+				if (oldBidder.isOnline())
+					AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyadd").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(oldBidder))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(located.getCurrentPrice())).sendPrefixedMessage(oldBidder.getPlayer());
+
+			}
+			
+
 			e.manager.showGUI(e.player, new GUIActiveAuctions(this.auctionPlayer));
 		});
 	}

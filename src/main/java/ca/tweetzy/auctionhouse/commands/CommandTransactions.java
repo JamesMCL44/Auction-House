@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -24,14 +42,15 @@ public class CommandTransactions extends AbstractCommand {
 
 	@Override
 	protected ReturnType runCommand(CommandSender sender, String... args) {
-		Player player = (Player) sender;
+		final Player player = (Player) sender;
 
 		if (CommandMiddleware.handle(player) == ReturnType.FAILURE) return ReturnType.FAILURE;
 
+		final AuctionHouse instance = AuctionHouse.getInstance();
 		if (Settings.RESTRICT_ALL_TRANSACTIONS_TO_PERM.getBoolean() && !player.hasPermission("auctionhouse.transactions.viewall")) {
-			AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUITransactionList(player, false));
+			instance.getGuiManager().showGUI(player, new GUITransactionList(player, false));
 		} else {
-			AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUITransactionType(player));
+			instance.getGuiManager().showGUI(player, new GUITransactionType(player));
 		}
 
 		return ReturnType.SUCCESS;

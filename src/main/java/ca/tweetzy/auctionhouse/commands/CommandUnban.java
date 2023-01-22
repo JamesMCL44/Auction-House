@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -30,26 +48,27 @@ public class CommandUnban extends AbstractCommand {
 		if (args.length != 1) return ReturnType.SYNTAX_ERROR;
 		if (AuctionAPI.tellMigrationStatus(sender)) return ReturnType.FAILURE;
 
-		Player target = PlayerUtils.findPlayer(args[0]);
+		final Player target = PlayerUtils.findPlayer(args[0]);
 		OfflinePlayer offlinePlayer = null;
 
+		final AuctionHouse instance = AuctionHouse.getInstance();
 		if (target == null) {
 			offlinePlayer = Bukkit.getOfflinePlayer(args[0]);
 			if (offlinePlayer == null || !offlinePlayer.hasPlayedBefore()) {
-				AuctionHouse.getInstance().getLocale().getMessage("general.playernotfound").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
+				instance.getLocale().getMessage("general.playernotfound").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
 				return ReturnType.FAILURE;
 			}
 		}
 
 		UUID toUnBan = target == null ? offlinePlayer.getUniqueId() : target.getUniqueId();
 
-		if (!AuctionHouse.getInstance().getAuctionBanManager().getBans().containsKey(toUnBan)) {
-			AuctionHouse.getInstance().getLocale().getMessage("bans.playernotbanned").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
+		if (!instance.getAuctionBanManager().getBans().containsKey(toUnBan)) {
+			instance.getLocale().getMessage("bans.playernotbanned").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
 			return ReturnType.FAILURE;
 		}
 
-		AuctionHouse.getInstance().getAuctionBanManager().removeBan(toUnBan);
-		AuctionHouse.getInstance().getLocale().getMessage("bans.playerunbanned").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
+		instance.getAuctionBanManager().removeBan(toUnBan);
+		instance.getLocale().getMessage("bans.playerunbanned").processPlaceholder("player", args[0]).sendPrefixedMessage(sender);
 		if (target != null) {
 			AuctionHouse.getInstance().getLocale().getMessage("bans.unbanned").sendPrefixedMessage(target);
 		}

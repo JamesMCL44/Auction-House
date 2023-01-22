@@ -1,6 +1,25 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
+import ca.tweetzy.auctionhouse.api.AuctionAPI;
 import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
 import ca.tweetzy.auctionhouse.auction.enums.AuctionStackType;
@@ -8,9 +27,11 @@ import ca.tweetzy.auctionhouse.guis.confirmation.GUIConfirmCancel;
 import ca.tweetzy.auctionhouse.helpers.ConfigurationItemHelper;
 import ca.tweetzy.auctionhouse.managers.SoundManager;
 import ca.tweetzy.auctionhouse.settings.Settings;
+import ca.tweetzy.core.hooks.EconomyManager;
 import ca.tweetzy.core.utils.TextUtils;
 import ca.tweetzy.core.utils.items.TItemBuilder;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Comparator;
@@ -74,6 +95,16 @@ public class GUIActiveAuctions extends AbstractPlaceholderGui {
 								if (item.getHighestBidder().equals(e.player.getUniqueId())) {
 									item.setExpired(true);
 									item.setExpiresAt(System.currentTimeMillis());
+									if (Settings.BIDDING_TAKES_MONEY.getBoolean() && !item.getHighestBidder().equals(item.getOwner())) {
+										final OfflinePlayer oldBidder = Bukkit.getOfflinePlayer(item.getHighestBidder());
+
+										EconomyManager.deposit(oldBidder, item.getCurrentPrice());
+
+										if (oldBidder.isOnline())
+											AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyadd").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(oldBidder))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(item.getCurrentPrice())).sendPrefixedMessage(oldBidder.getPlayer());
+
+									}
+
 									draw();
 									return;
 								}
@@ -103,7 +134,7 @@ public class GUIActiveAuctions extends AbstractPlaceholderGui {
 			e.manager.showGUI(e.player, new GUIAuctionHouse(this.auctionPlayer));
 		});
 
-		setButton(5, 4, new TItemBuilder(Objects.requireNonNull(Settings.GUI_REFRESH_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_REFRESH_BTN_NAME.getString()).setLore(Settings.GUI_REFRESH_BTN_LORE.getStringList()).toItemStack(), e -> e.manager.showGUI(e.player, new GUIActiveAuctions(this.auctionPlayer)));
+		setButton(5, 4, getRefreshButtonItem(), e -> e.manager.showGUI(e.player, new GUIActiveAuctions(this.auctionPlayer)));
 
 		setButton(5, 1, ConfigurationItemHelper.createConfigurationItem(Settings.GUI_ACTIVE_AUCTIONS_ITEM.getString(), Settings.GUI_ACTIVE_AUCTIONS_NAME.getString(), Settings.GUI_ACTIVE_AUCTIONS_LORE.getStringList(), null), e -> {
 			this.auctionPlayer.getItems(false).forEach(item -> item.setExpired(true));
@@ -112,8 +143,8 @@ public class GUIActiveAuctions extends AbstractPlaceholderGui {
 	}
 
 	private void drawPaginationButtons() {
-		setPrevPage(5, 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_BACK_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_BACK_BTN_NAME.getString()).setLore(Settings.GUI_BACK_BTN_LORE.getStringList()).toItemStack());
-		setNextPage(5, 5, new TItemBuilder(Objects.requireNonNull(Settings.GUI_NEXT_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_NEXT_BTN_NAME.getString()).setLore(Settings.GUI_NEXT_BTN_LORE.getStringList()).toItemStack());
+		setPrevPage(5, 3, getPreviousPageItem());
+		setNextPage(5, 5, getNextPageItem());
 		setOnPage(e -> {
 			draw();
 			SoundManager.getInstance().playSound(this.auctionPlayer.getPlayer(), Settings.SOUNDS_NAVIGATE_GUI_PAGES.getString(), 1.0F, 1.0F);

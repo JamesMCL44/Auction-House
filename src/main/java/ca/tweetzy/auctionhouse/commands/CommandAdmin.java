@@ -1,16 +1,37 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
 import ca.tweetzy.auctionhouse.api.AuctionAPI;
-import ca.tweetzy.auctionhouse.guis.GUISellItem;
+import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
+import ca.tweetzy.auctionhouse.guis.GUIAuctionHouse;
 import ca.tweetzy.auctionhouse.guis.admin.GUIAdminExpired;
 import ca.tweetzy.auctionhouse.guis.admin.GUIAdminLogs;
+import ca.tweetzy.auctionhouse.guis.sell.GUISellListingType;
+import ca.tweetzy.auctionhouse.guis.sell.GUISellPlaceItem;
 import ca.tweetzy.auctionhouse.helpers.PlayerHelper;
 import ca.tweetzy.auctionhouse.settings.Settings;
 import ca.tweetzy.core.commands.AbstractCommand;
-import ca.tweetzy.core.compatibility.CompatibleHand;
-import ca.tweetzy.core.compatibility.XMaterial;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import ca.tweetzy.core.utils.PlayerUtils;
+import ca.tweetzy.core.utils.TextUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -39,14 +60,16 @@ public class CommandAdmin extends AbstractCommand {
 		if (args.length < 1) return ReturnType.FAILURE;
 		if (AuctionAPI.tellMigrationStatus(sender)) return ReturnType.FAILURE;
 
+		final AuctionHouse instance = AuctionHouse.getInstance();
 		switch (args[0].toLowerCase()) {
 			case "logs":
 				if (!(sender instanceof Player)) break;
 				Player player = (Player) sender;
+				if (!player.hasPermission("auctionhouse.cmd.admin.logs")) return ReturnType.FAILURE;
 
-				AuctionHouse.getInstance().getDataManager().getAdminLogs((error, logs) -> {
+				instance.getDataManager().getAdminLogs((error, logs) -> {
 					if (error == null)
-						AuctionHouse.newChain().sync(() -> AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUIAdminLogs(player, logs))).execute();
+						AuctionHouse.newChain().sync(() -> instance.getGuiManager().showGUI(player, new GUIAdminLogs(player, logs))).execute();
 					else
 						error.printStackTrace();
 				});
@@ -54,6 +77,8 @@ public class CommandAdmin extends AbstractCommand {
 			case "viewexpired":
 				if (!(sender instanceof Player)) break;
 				player = (Player) sender;
+				if (!player.hasPermission("auctionhouse.cmd.admin.viewexpired")) return ReturnType.FAILURE;
+
 
 				if (args.length < 2) return ReturnType.FAILURE;
 				OfflinePlayer target = Bukkit.getPlayerExact(args[1]);
@@ -67,54 +92,69 @@ public class CommandAdmin extends AbstractCommand {
 				}
 
 				if (target == null) {
-					AuctionHouse.getInstance().getLocale().getMessage("general.playernotfound").processPlaceholder("player", args[1]).sendPrefixedMessage(sender);
+					instance.getLocale().getMessage("general.playernotfound").processPlaceholder("player", args[1]).sendPrefixedMessage(sender);
 					return ReturnType.FAILURE;
 				}
 
-				AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUIAdminExpired(player, target));
+				instance.getGuiManager().showGUI(player, new GUIAdminExpired(player, target));
 
 				break;
 			case "endall":
-				for (UUID id : AuctionHouse.getInstance().getAuctionItemManager().getItems().keySet()) {
-					AuctionHouse.getInstance().getAuctionItemManager().getItems().get(id).setExpired(true);
+				if (!sender.hasPermission("auctionhouse.cmd.admin.endall")) return ReturnType.FAILURE;
+				for (UUID id : instance.getAuctionItemManager().getItems().keySet()) {
+					instance.getAuctionItemManager().getItems().get(id).setExpired(true);
 				}
-				AuctionHouse.getInstance().getLocale().getMessage("general.endedallauctions").sendPrefixedMessage(sender);
+				instance.getLocale().getMessage("general.endedallauctions").sendPrefixedMessage(sender);
 				break;
 			case "relistall":
-				for (UUID id : AuctionHouse.getInstance().getAuctionItemManager().getItems().keySet()) {
-					if (AuctionHouse.getInstance().getAuctionItemManager().getItems().get(id).isExpired()) {
-						int relistTime = args.length == 1 ? AuctionHouse.getInstance().getAuctionItemManager().getItems().get(id).isBidItem() ? Settings.DEFAULT_AUCTION_LISTING_TIME.getInt() : Settings.DEFAULT_BIN_LISTING_TIME.getInt() : Integer.parseInt(args[1]);
+				if (!sender.hasPermission("auctionhouse.cmd.admin.relistall")) return ReturnType.FAILURE;
+				for (UUID id : instance.getAuctionItemManager().getItems().keySet()) {
+					if (instance.getAuctionItemManager().getItems().get(id).isExpired()) {
+						int relistTime = args.length == 1 ? instance.getAuctionItemManager().getItems().get(id).isBidItem() ? Settings.DEFAULT_AUCTION_LISTING_TIME.getInt() : Settings.DEFAULT_BIN_LISTING_TIME.getInt() : Integer.parseInt(args[1]);
 
-						AuctionHouse.getInstance().getAuctionItemManager().getItems().get(id).setExpiresAt(System.currentTimeMillis() + 1000L * relistTime);
-						AuctionHouse.getInstance().getAuctionItemManager().getItems().get(id).setExpired(false);
+						instance.getAuctionItemManager().getItems().get(id).setExpiresAt(System.currentTimeMillis() + 1000L * relistTime);
+						instance.getAuctionItemManager().getItems().get(id).setExpired(false);
 					}
 				}
-				AuctionHouse.getInstance().getLocale().getMessage("general.relisteditems").sendPrefixedMessage(sender);
+				instance.getLocale().getMessage("general.relisteditems").sendPrefixedMessage(sender);
 				break;
 			case "clearall":
+				if (!sender.hasPermission("auctionhouse.cmd.admin.clearall")) return ReturnType.FAILURE;
 				// Don't tell ppl that this exists
-				AuctionHouse.getInstance().getAuctionItemManager().getItems().clear();
-			case "durabilitystatus":
-				Bukkit.broadcastMessage("damaged: " + AuctionAPI.getInstance().isDamaged(PlayerHelper.getHeldItem((Player) sender)));
-				break;
-			case "repairstatus":
-				Bukkit.broadcastMessage("repair: " + AuctionAPI.getInstance().isRepaired(PlayerHelper.getHeldItem((Player) sender)));
-				break;
+				instance.getAuctionItemManager().getItems().clear();
 			case "opensell":
 				if (args.length < 2) return ReturnType.FAILURE;
+				if (!sender.hasPermission("auctionhouse.cmd.admin.opensell")) return ReturnType.FAILURE;
+
 				player = PlayerUtils.findPlayer(args[1]);
 				if (player == null) return ReturnType.FAILURE;
 
 				ItemStack itemToSell = PlayerHelper.getHeldItem(player).clone();
 
-				if (itemToSell.getType() == XMaterial.AIR.parseMaterial() && Settings.SELL_MENU_REQUIRES_USER_TO_HOLD_ITEM.getBoolean()) {
-					AuctionHouse.getInstance().getLocale().getMessage("general.air").sendPrefixedMessage(player);
+				if (itemToSell.getType() == CompMaterial.AIR.parseMaterial() && Settings.SELL_MENU_REQUIRES_USER_TO_HOLD_ITEM.getBoolean()) {
+					instance.getLocale().getMessage("general.air").sendPrefixedMessage(player);
 					return ReturnType.FAILURE;
 				} else {
-					AuctionHouse.getInstance().getGuiManager().showGUI(player, new GUISellItem(AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(player.getUniqueId()), itemToSell));
-					AuctionHouse.getInstance().getAuctionPlayerManager().addItemToSellHolding(player.getUniqueId(), itemToSell);
-					PlayerUtils.takeActiveItem(player, CompatibleHand.MAIN_HAND, itemToSell.getAmount());
+					instance.getGuiManager().showGUI(player, new GUISellListingType(instance.getAuctionPlayerManager().getPlayer(player.getUniqueId()), selected -> {
+						instance.getGuiManager().showGUI(player, new GUISellPlaceItem(instance.getAuctionPlayerManager().getPlayer(player.getUniqueId()), GUISellPlaceItem.ViewMode.SINGLE_ITEM, selected));
+					}));
 				}
+				break;
+			case "open":
+				if (args.length < 2) return ReturnType.FAILURE;
+				if (!sender.hasPermission("auctionhouse.cmd.admin.open")) return ReturnType.FAILURE;
+
+				player = PlayerUtils.findPlayer(args[1]);
+				if (player == null) return ReturnType.FAILURE;
+
+				if (CommandMiddleware.handle(player) == ReturnType.FAILURE) return ReturnType.FAILURE;
+
+				if (instance.getAuctionPlayerManager().getPlayer(player.getUniqueId()) == null) {
+					instance.getLocale().newMessage(TextUtils.formatText("&cCould not find auction player instance for&f: &e" + player.getName() + "&c creating one now.")).sendPrefixedMessage(Bukkit.getConsoleSender());
+					instance.getAuctionPlayerManager().addPlayer(new AuctionPlayer(player));
+				}
+
+				instance.getGuiManager().showGUI(player, new GUIAuctionHouse(instance.getAuctionPlayerManager().getPlayer(player.getUniqueId())));
 				break;
 		}
 
@@ -123,9 +163,10 @@ public class CommandAdmin extends AbstractCommand {
 
 	@Override
 	protected List<String> onTab(CommandSender sender, String... args) {
-		if (args.length == 1) return Arrays.asList("endall", "relistall", "logs", "viewexpired");
+		if (args.length == 1) return Arrays.asList("endall", "relistall", "logs", "viewexpired", "open");
 		if (args.length == 2 && args[0].equalsIgnoreCase("relistAll")) return Arrays.asList("1", "2", "3", "4", "5");
-		if (args.length == 2 && args[0].equalsIgnoreCase("viewexpired")) return Bukkit.getOnlinePlayers().stream().map(OfflinePlayer::getName).collect(Collectors.toList());
+		if (args.length == 2 && (args[0].equalsIgnoreCase("viewexpired") || args[0].equalsIgnoreCase("open")))
+			return Bukkit.getOnlinePlayers().stream().map(OfflinePlayer::getName).collect(Collectors.toList());
 		return null;
 	}
 

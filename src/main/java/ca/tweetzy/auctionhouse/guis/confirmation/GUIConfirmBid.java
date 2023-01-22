@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis.confirmation;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -10,14 +28,11 @@ import ca.tweetzy.auctionhouse.guis.GUIAuctionHouse;
 import ca.tweetzy.auctionhouse.settings.Settings;
 import ca.tweetzy.core.hooks.EconomyManager;
 import ca.tweetzy.core.utils.TextUtils;
-import ca.tweetzy.core.utils.items.TItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
-
-import java.util.Objects;
 
 /**
  * The current file has been created by Kiran Hart
@@ -66,9 +81,9 @@ public class GUIConfirmBid extends AbstractPlaceholderGui {
 	}
 
 	private void draw() {
-		setItems(0, 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_BID_YES_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_BID_YES_NAME.getString()).setLore(Settings.GUI_CONFIRM_BID_YES_LORE.getStringList()).toItemStack());
+		setItems(0, 3, getConfirmBidYesItem());
 		placeAuctionItem();
-		setItems(5, 8, new TItemBuilder(Objects.requireNonNull(Settings.GUI_CONFIRM_BID_NO_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_CONFIRM_BID_NO_NAME.getString()).setLore(Settings.GUI_CONFIRM_BID_NO_LORE.getStringList()).toItemStack());
+		setItems(5, 8, getConfirmBidNoItem());
 
 		setActionForRange(5, 8, ClickType.LEFT, e -> {
 			cleanup();
@@ -102,6 +117,8 @@ public class GUIConfirmBid extends AbstractPlaceholderGui {
 				newBiddingAmount = this.auctionItem.getCurrentPrice() + toIncrementBy;
 			}
 
+			newBiddingAmount = Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(newBiddingAmount) : newBiddingAmount;
+
 			if (Settings.PLAYER_NEEDS_TOTAL_PRICE_TO_BID.getBoolean() && !EconomyManager.hasBalance(e.player, newBiddingAmount)) {
 				AuctionHouse.getInstance().getLocale().getMessage("general.notenoughmoney").sendPrefixedMessage(e.player);
 				return;
@@ -116,9 +133,33 @@ public class GUIConfirmBid extends AbstractPlaceholderGui {
 			Bukkit.getServer().getPluginManager().callEvent(auctionBidEvent);
 			if (auctionBidEvent.isCancelled()) return;
 
+			if (Settings.BIDDING_TAKES_MONEY.getBoolean()) {
+				final double oldBidAmount = auctionItem.getCurrentPrice();
+
+				if (!EconomyManager.hasBalance(e.player, newBiddingAmount)) {
+					AuctionHouse.getInstance().getLocale().getMessage("general.notenoughmoney").sendPrefixedMessage(e.player);
+					return;
+				}
+
+				if (e.player.getUniqueId().equals(owner.getUniqueId()) || oldBidder.getUniqueId().equals(e.player.getUniqueId())) {
+					return;
+				}
+
+				if (!auctionItem.getHighestBidder().equals(auctionItem.getOwner())) {
+					EconomyManager.deposit(oldBidder, oldBidAmount);
+					if (oldBidder.isOnline())
+						AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyadd").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(oldBidder))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(oldBidAmount)).sendPrefixedMessage(oldBidder.getPlayer());
+				}
+
+
+				EconomyManager.withdrawBalance(e.player, newBiddingAmount);
+				AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyremove").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(e.player))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(newBiddingAmount)).sendPrefixedMessage(e.player);
+
+			}
+
 			auctionItem.setHighestBidder(e.player.getUniqueId());
 			auctionItem.setHighestBidderName(e.player.getName());
-			auctionItem.setCurrentPrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(newBiddingAmount) : newBiddingAmount);
+			auctionItem.setCurrentPrice(newBiddingAmount);
 			if (auctionItem.getBasePrice() != -1 && Settings.SYNC_BASE_PRICE_TO_HIGHEST_PRICE.getBoolean() && Settings.ALLOW_USAGE_OF_BUY_NOW_SYSTEM.getBoolean() && auctionItem.getCurrentPrice() > auctionItem.getBasePrice()) {
 				auctionItem.setBasePrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(auctionItem.getCurrentPrice()) : auctionItem.getCurrentPrice());
 			}

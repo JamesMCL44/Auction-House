@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -21,17 +39,18 @@ public final class CommandMiddleware {
 	public AbstractCommand.ReturnType handle(@NonNull final Player player) {
 		if (AuctionAPI.tellMigrationStatus(player)) return AbstractCommand.ReturnType.FAILURE;
 
+		final AuctionHouse instance = AuctionHouse.getInstance();
 		if (Settings.BLOCKED_WORLDS.getStringList().contains(player.getWorld().getName())) {
-			AuctionHouse.getInstance().getLocale().getMessage("general.disabled in world").sendPrefixedMessage(player);
+			instance.getLocale().getMessage("general.disabled in world").sendPrefixedMessage(player);
 			return AbstractCommand.ReturnType.FAILURE;
 		}
 
 		if (Settings.USE_AUCTION_CHEST_MODE.getBoolean()) {
-			AuctionHouse.getInstance().getLocale().getMessage("general.visit auction chest").sendPrefixedMessage(player);
+			instance.getLocale().getMessage("general.visit auction chest").sendPrefixedMessage(player);
 			return AbstractCommand.ReturnType.FAILURE;
 		}
 
-		if (AuctionHouse.getInstance().getAuctionBanManager().checkAndHandleBan(player)) {
+		if (instance.getAuctionBanManager().checkAndHandleBan(player)) {
 			return AbstractCommand.ReturnType.FAILURE;
 		}
 

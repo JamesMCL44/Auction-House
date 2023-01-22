@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.guis.transaction;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -5,9 +23,9 @@ import ca.tweetzy.auctionhouse.api.AuctionAPI;
 import ca.tweetzy.auctionhouse.guis.AbstractPlaceholderGui;
 import ca.tweetzy.auctionhouse.guis.GUIAuctionHouse;
 import ca.tweetzy.auctionhouse.helpers.ConfigurationItemHelper;
+import ca.tweetzy.auctionhouse.helpers.input.TitleInput;
 import ca.tweetzy.auctionhouse.settings.Settings;
 import ca.tweetzy.auctionhouse.transaction.Transaction;
-import ca.tweetzy.core.input.PlayerChatInput;
 import ca.tweetzy.core.utils.NumberUtils;
 import ca.tweetzy.core.utils.TextUtils;
 import org.bukkit.ChatColor;
@@ -34,15 +52,16 @@ public final class GUITransactionType extends AbstractPlaceholderGui {
 		setRows(4);
 		setAcceptsItems(false);
 		setUseLockedCells(true);
-		setDefaultItem(Settings.GUI_TRANSACTIONS_TYPE_BG_ITEM.getMaterial().parseItem());
+		setDefaultItem(ConfigurationItemHelper.createConfigurationItem(Settings.GUI_TRANSACTIONS_TYPE_BG_ITEM.getString()));
 		draw();
 	}
 
 	private void draw() {
+		final AuctionHouse instance = AuctionHouse.getInstance();
 //		(player.hasPermission("auctionhouse.admin") || player.isOp())
 		setButton(11, ConfigurationItemHelper.createConfigurationItem(Settings.GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_ITEM.getString(), Settings.GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_NAME.getString(), Settings.GUI_TRANSACTIONS_TYPE_ITEMS_ALL_TRANSACTIONS_LORE.getStringList(), null), e -> {
 			if (Settings.RESTRICT_ALL_TRANSACTIONS_TO_PERM.getBoolean() && !e.player.hasPermission("auctionhouse.transactions.viewall")) {
-				AuctionHouse.getInstance().getLocale().getMessage("commands.no_permission").sendPrefixedMessage(e.player);
+				instance.getLocale().getMessage("commands.no_permission").sendPrefixedMessage(e.player);
 				return;
 			}
 
@@ -56,47 +75,50 @@ public final class GUITransactionType extends AbstractPlaceholderGui {
 		if (player.isOp() || player.hasPermission("auctionhouse.admin")) {
 			setButton(3, 8, ConfigurationItemHelper.createConfigurationItem(Settings.GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_ITEM.getString(), Settings.GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_NAME.getString(), Settings.GUI_TRANSACTIONS_TYPE_ITEMS_DELETE_LORE.getStringList(), null), e -> {
 				e.gui.close();
-				PlayerChatInput.PlayerChatInputBuilder<Long> builder = new PlayerChatInput.PlayerChatInputBuilder<>(AuctionHouse.getInstance(), e.player);
-				builder.isValidInput((p, str) -> {
-					String[] parts = ChatColor.stripColor(str).split(" ");
-					if (parts.length == 2) {
-						return NumberUtils.isInt(parts[0]) && Arrays.asList("second", "minute", "hour", "day", "week", "month", "year").contains(parts[1].toLowerCase());
+
+				new TitleInput(player, AuctionHouse.getInstance().getLocale().getMessage("titles.enter deletion range.title").getMessage(), AuctionHouse.getInstance().getLocale().getMessage("titles.enter deletion range.subtitle").getMessage()) {
+
+					@Override
+					public void onExit(Player player) {
+						e.manager.showGUI(e.player, GUITransactionType.this);
 					}
-					return false;
-				});
-				builder.sendValueMessage(TextUtils.formatText(AuctionHouse.getInstance().getLocale().getMessage("prompts.enter deletion range").getMessage()));
-				builder.invalidInputMessage(TextUtils.formatText(AuctionHouse.getInstance().getLocale().getMessage("prompts.enter valid deletion range").getMessage()));
-				builder.toCancel("cancel");
-				builder.onCancel(p -> e.manager.showGUI(e.player, new GUITransactionType(e.player)));
-				builder.setValue((p, value) -> AuctionAPI.toTicks(ChatColor.stripColor(value)));
-				builder.onFinish((p, value) -> {
-					int seconds = value.intValue();
 
-					AuctionHouse.newChain().async(() -> {
-						AuctionHouse.getInstance().getLocale().getMessage("general.transaction delete begin").sendPrefixedMessage(e.player);
-						List<UUID> toRemove = new ArrayList<>();
+					@Override
+					public boolean onResult(String string) {
+						string = ChatColor.stripColor(string);
 
-						Set<Map.Entry<UUID, Transaction>> entrySet = AuctionHouse.getInstance().getTransactionManager().getTransactions().entrySet();
-						Iterator<Map.Entry<UUID, Transaction>> entryIterator = entrySet.iterator();
+						final String[] parts = ChatColor.stripColor(string).split(" ");
 
-						while (entryIterator.hasNext()) {
-							Map.Entry<UUID, Transaction> entry = entryIterator.next();
-							Transaction transaction = entry.getValue();
-
-							if (Instant.ofEpochMilli(transaction.getTransactionTime()).isBefore(Instant.now().minus(Duration.ofSeconds(seconds)))) {
-								toRemove.add(transaction.getId());
-								entryIterator.remove();
-							}
+						if (!NumberUtils.isInt(parts[0]) && Arrays.asList("second", "minute", "hour", "day", "week", "month", "year").contains(parts[1].toLowerCase())) {
+							instance.getLocale().getMessage("prompts.enter deletion range").sendPrefixedMessage(player);
+							return false;
 						}
 
-						AuctionHouse.getInstance().getDataManager().deleteTransactions(toRemove);
-						AuctionHouse.getInstance().getLocale().getMessage("general.deleted transactions").processPlaceholder("deleted_transactions", toRemove.size()).sendPrefixedMessage(e.player);
-					}).execute();
-				});
+						final long ticks = AuctionAPI.toTicks(string);
 
-				PlayerChatInput<Long> input = builder.build();
-				input.start();
+						AuctionHouse.newChain().async(() -> {
+							instance.getLocale().getMessage("general.transaction delete begin").sendPrefixedMessage(e.player);
+							List<UUID> toRemove = new ArrayList<>();
 
+							Set<Map.Entry<UUID, Transaction>> entrySet = instance.getTransactionManager().getTransactions().entrySet();
+							Iterator<Map.Entry<UUID, Transaction>> entryIterator = entrySet.iterator();
+
+							while (entryIterator.hasNext()) {
+								Map.Entry<UUID, Transaction> entry = entryIterator.next();
+								Transaction transaction = entry.getValue();
+
+								if (Instant.ofEpochMilli(transaction.getTransactionTime()).isBefore(Instant.now().minus(Duration.ofSeconds(ticks)))) {
+									toRemove.add(transaction.getId());
+									entryIterator.remove();
+								}
+							}
+
+							instance.getDataManager().deleteTransactions(toRemove);
+							instance.getLocale().getMessage("general.deleted transactions").processPlaceholder("deleted_transactions", toRemove.size()).sendPrefixedMessage(e.player);
+						}).execute();
+						return true;
+					}
+				};
 			});
 		}
 

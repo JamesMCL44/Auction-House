@@ -1,25 +1,36 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.api;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
-import ca.tweetzy.auctionhouse.api.events.AuctionStartEvent;
 import ca.tweetzy.auctionhouse.api.hook.MMOItemsHook;
-import ca.tweetzy.auctionhouse.api.hook.McMMOHook;
-import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
 import ca.tweetzy.auctionhouse.auction.MinItemPrice;
 import ca.tweetzy.auctionhouse.auction.enums.AuctionSaleType;
 import ca.tweetzy.auctionhouse.helpers.ConfigurationItemHelper;
-import ca.tweetzy.auctionhouse.helpers.MaterialCategorizer;
-import ca.tweetzy.auctionhouse.managers.SoundManager;
 import ca.tweetzy.auctionhouse.settings.Settings;
-import ca.tweetzy.core.compatibility.CompatibleHand;
 import ca.tweetzy.core.compatibility.ServerVersion;
-import ca.tweetzy.core.compatibility.XMaterial;
 import ca.tweetzy.core.hooks.EconomyManager;
-import ca.tweetzy.core.utils.PlayerUtils;
 import ca.tweetzy.core.utils.TextUtils;
 import ca.tweetzy.core.utils.items.ItemUtils;
 import ca.tweetzy.core.utils.nms.NBTEditor;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
 import org.bukkit.Bukkit;
@@ -53,6 +64,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * The current file has been created by Kiran Hart
@@ -85,11 +97,18 @@ public class AuctionAPI {
 		String suffix = " KMBTQPEZY";
 		String formattedNumber = "";
 
-		NumberFormat formatter = new DecimalFormat("#,###.#");
-		power = (int) StrictMath.log10(value);
-		value = value / (Math.pow(10, (power / 3) * 3));
-		formattedNumber = formatter.format(value);
-		formattedNumber = formattedNumber + suffix.charAt(power / 3);
+		try {
+			NumberFormat formatter = new DecimalFormat("#,###.#");
+			power = (int) StrictMath.log10(value);
+			value = value / (Math.pow(10, (power / 3) * 3));
+			formattedNumber = formatter.format(value);
+
+			formattedNumber = formattedNumber + suffix.charAt(power / 3);
+
+		} catch (StringIndexOutOfBoundsException e) {
+			return formatNumber(value);
+		}
+
 		return formattedNumber.length() > 4 ? formattedNumber.replaceAll("\\.[0-9]+", "") : formattedNumber;
 	}
 
@@ -234,7 +253,7 @@ public class AuctionAPI {
 	 * @return the player skull
 	 */
 	public ItemStack getPlayerHead(String name) {
-		ItemStack stack = XMaterial.PLAYER_HEAD.parseItem();
+		ItemStack stack = CompMaterial.PLAYER_HEAD.parseItem();
 		SkullMeta meta = (SkullMeta) stack.getItemMeta();
 		meta.setOwner(name);
 		stack.setItemMeta(meta);
@@ -252,18 +271,20 @@ public class AuctionAPI {
 	 * @param isBid       Is this auction a bid enabled auction, or a single sale auction?
 	 */
 	public void sendDiscordMessage(String webhook, OfflinePlayer seller, OfflinePlayer buyer, AuctionedItem auctionItem, AuctionSaleType saleType, boolean isNew, boolean isBid) {
-		DiscordWebhook hook = new DiscordWebhook(webhook);
+		final DiscordWebhook hook = new DiscordWebhook(webhook);
 		hook.setUsername(Settings.DISCORD_MSG_USERNAME.getString());
 		hook.setAvatarUrl(Settings.DISCORD_MSG_PFP.getString());
 
-		String[] possibleColours = Settings.DISCORD_MSG_DEFAULT_COLOUR.getString().split("-");
-		Color colour = Settings.DISCORD_MSG_USE_RANDOM_COLOUR.getBoolean()
+		final String color = isBid ? Settings.DISCORD_MSG_DEFAULT_COLOUR_BID.getString() : isNew ? Settings.DISCORD_MSG_DEFAULT_COLOUR.getString() : Settings.DISCORD_MSG_DEFAULT_COLOUR_SALE.getString();
+
+		final String[] possibleColours = color.split("-");
+		final Color colour = Settings.DISCORD_MSG_USE_RANDOM_COLOUR.getBoolean()
 				? Color.getHSBColor(ThreadLocalRandom.current().nextFloat() * 360F, ThreadLocalRandom.current().nextFloat() * 101F, ThreadLocalRandom.current().nextFloat() * 101F)
 				: Color.getHSBColor(Float.parseFloat(possibleColours[0]) / 360, Float.parseFloat(possibleColours[1]) / 100, Float.parseFloat(possibleColours[2]) / 100);
 
-		ItemStack itemStack = auctionItem.getItem();
-		String itemName = MMOItemsHook.isEnabled() ? MMOItemsHook.getItemType(itemStack) : ChatColor.stripColor(getItemName(itemStack));
-		DiscordWebhook.EmbedObject embedObject = new DiscordWebhook.EmbedObject();
+		final ItemStack itemStack = auctionItem.getItem();
+		final String itemName = MMOItemsHook.isEnabled() ? MMOItemsHook.getItemType(itemStack) : ChatColor.stripColor(getItemName(itemStack));
+		final DiscordWebhook.EmbedObject embedObject = new DiscordWebhook.EmbedObject();
 
 		final String playerLost = AuctionHouse.getInstance().getLocale().getMessage("discord.player_lost").getMessage();
 		final String notSold = AuctionHouse.getInstance().getLocale().getMessage("discord.not_sold").getMessage();
@@ -274,7 +295,7 @@ public class AuctionAPI {
 		final String isBidWin = AuctionHouse.getInstance().getLocale().getMessage("discord.sale_bid_win").getMessage();
 		final String immediateBuy = AuctionHouse.getInstance().getLocale().getMessage("discord.sale_immediate_buy").getMessage();
 
-		embedObject.setTitle(isNew ? Settings.DISCORD_MSG_START_TITLE.getString() : Settings.DISCORD_MSG_FINISH_TITLE.getString());
+		embedObject.setTitle(isNew ? isBid ? Settings.DISCORD_MSG_START_TITLE_BID.getString() : Settings.DISCORD_MSG_START_TITLE.getString() : Settings.DISCORD_MSG_FINISH_TITLE.getString());
 		embedObject.setColor(colour);
 		embedObject.addField(Settings.DISCORD_MSG_FIELD_SELLER_NAME.getString(), Settings.DISCORD_MSG_FIELD_SELLER_VALUE.getString().replace("%seller%", seller.getName() != null ? seller.getName() : playerLost), Settings.DISCORD_MSG_FIELD_SELLER_INLINE.getBoolean());
 		embedObject.addField(Settings.DISCORD_MSG_FIELD_BUYER_NAME.getString(), isNew ? noBuyer : Settings.DISCORD_MSG_FIELD_BUYER_VALUE.getString().replace("%buyer%", buyer.getName() != null ? buyer.getName() : playerLost), Settings.DISCORD_MSG_FIELD_BUYER_INLINE.getBoolean());
@@ -303,19 +324,19 @@ public class AuctionAPI {
 	 */
 	public void sendDiscordBidMessage(String webhook, AuctionedItem auctionItem, double newBid) {
 		// oh boy the code repetition is high with this one
-		DiscordWebhook hook = new DiscordWebhook(webhook);
+		final DiscordWebhook hook = new DiscordWebhook(webhook);
 		hook.setUsername(Settings.DISCORD_MSG_USERNAME.getString());
 		hook.setAvatarUrl(Settings.DISCORD_MSG_PFP.getString());
 
-		String[] possibleColours = Settings.DISCORD_MSG_DEFAULT_COLOUR.getString().split("-");
-		Color colour = Settings.DISCORD_MSG_USE_RANDOM_COLOUR.getBoolean()
+		final String[] possibleColours = Settings.DISCORD_MSG_DEFAULT_COLOUR_BID.getString().split("-");
+		final Color colour = Settings.DISCORD_MSG_USE_RANDOM_COLOUR.getBoolean()
 				? Color.getHSBColor(ThreadLocalRandom.current().nextFloat() * 360F, ThreadLocalRandom.current().nextFloat() * 101F, ThreadLocalRandom.current().nextFloat() * 101F)
 				: Color.getHSBColor(Float.parseFloat(possibleColours[0]) / 360, Float.parseFloat(possibleColours[1]) / 100, Float.parseFloat(possibleColours[2]) / 100);
 
-		ItemStack itemStack = auctionItem.getItem();
-		String itemName = MMOItemsHook.isEnabled() ? MMOItemsHook.getItemType(itemStack) : ChatColor.stripColor(getItemName(itemStack));
+		final ItemStack itemStack = auctionItem.getItem();
+		final String itemName = MMOItemsHook.isEnabled() ? MMOItemsHook.getItemType(itemStack) : ChatColor.stripColor(getItemName(itemStack));
 
-		DiscordWebhook.EmbedObject embedObject = new DiscordWebhook.EmbedObject();
+		final DiscordWebhook.EmbedObject embedObject = new DiscordWebhook.EmbedObject();
 		embedObject.setTitle(Settings.DISCORD_MSG_BID_TITLE.getString());
 		embedObject.setColor(colour);
 		embedObject.addField(Settings.DISCORD_MSG_FIELD_BIDDER_NAME.getString(), Settings.DISCORD_MSG_FIELD_BIDDER_VALUE.getString().replace("%bidder%", auctionItem.getHighestBidderName() != null ? auctionItem.getHighestBidderName() : AuctionHouse.getInstance().getLocale().getMessage("discord.player_lost").getMessage()), Settings.DISCORD_MSG_FIELD_BIDDER_INLINE.getBoolean());
@@ -367,7 +388,7 @@ public class AuctionAPI {
 	 * @return a list of all the enchantment names
 	 */
 	public List<String> getItemEnchantments(ItemStack stack) {
-		List<String> enchantments = new ArrayList<>();
+		final List<String> enchantments = new ArrayList<>();
 		Objects.requireNonNull(stack, "Item Stack cannot be null when getting enchantments");
 		if (!stack.getEnchantments().isEmpty()) {
 			stack.getEnchantments().forEach((k, i) -> {
@@ -483,10 +504,17 @@ public class AuctionAPI {
 	 */
 	public int getItemCountInPlayerInventory(Player player, ItemStack stack) {
 		int total = 0;
-		if (stack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
+		if (stack.getType() == CompMaterial.PLAYER_HEAD.parseMaterial()) {
 			for (ItemStack item : player.getInventory().getContents()) {
-				if (item == null || item.getType() != XMaterial.PLAYER_HEAD.parseMaterial()) continue;
-				if (NBTEditor.getTexture(item).equals(NBTEditor.getTexture(stack))) total += item.getAmount();
+				if (item == null || item.getType() != CompMaterial.PLAYER_HEAD.parseMaterial()) continue;
+				if (NBTEditor.getTexture(item).equals(NBTEditor.getTexture(stack))) {
+					final String invItemTexture = NBTEditor.getTexture(item);
+					final String orgItemTexture = NBTEditor.getTexture(stack);
+
+					if (invItemTexture == null) continue;
+					if (orgItemTexture == null) continue;
+					total += item.getAmount();
+				}
 			}
 		} else {
 			for (ItemStack item : player.getInventory().getContents()) {
@@ -509,7 +537,7 @@ public class AuctionAPI {
 		for (int i = 0; i < player.getInventory().getSize(); i++) {
 			ItemStack item = player.getInventory().getItem(i);
 			if (item == null) continue;
-			if (stack.getType() == XMaterial.PLAYER_HEAD.parseMaterial() && item.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
+			if (stack.getType() == CompMaterial.PLAYER_HEAD.parseMaterial() && item.getType() == CompMaterial.PLAYER_HEAD.parseMaterial()) {
 				if (!NBTEditor.getTexture(item).equals(NBTEditor.getTexture(stack))) continue;
 			} else {
 				if (!item.isSimilar(stack)) continue;
@@ -533,8 +561,24 @@ public class AuctionAPI {
 		for (int j = 0; j < player.getInventory().getSize(); j++) {
 			ItemStack item = player.getInventory().getItem(j);
 			if (item == null) continue;
-			if (stack.getType() == XMaterial.PLAYER_HEAD.parseMaterial() && item.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
-				if (!NBTEditor.getTexture(item).equals(NBTEditor.getTexture(stack))) continue;
+			if (stack.getType() == CompMaterial.PLAYER_HEAD.parseMaterial() && item.getType() == CompMaterial.PLAYER_HEAD.parseMaterial()) {
+
+				// is actual player head???
+				SkullMeta invItemMeta = (SkullMeta) item.getItemMeta();
+				SkullMeta orgItemMeta = (SkullMeta) stack.getItemMeta();
+
+				if (invItemMeta != null && orgItemMeta != null && invItemMeta.hasOwner() && orgItemMeta.hasOwner()) {
+					if (!invItemMeta.getOwner().equalsIgnoreCase(orgItemMeta.getOwner())) continue;
+				} else {
+					final String invItemTexture = NBTEditor.getTexture(item);
+					final String orgItemTexture = NBTEditor.getTexture(stack);
+
+					if (invItemTexture == null) continue;
+					if (orgItemTexture == null) continue;
+
+					if (!NBTEditor.getTexture(item).equals(NBTEditor.getTexture(stack))) continue;
+				}
+
 			} else {
 				if (!item.isSimilar(stack)) continue;
 
@@ -626,152 +670,8 @@ public class AuctionAPI {
 		return NBTEditor.contains(item, "AuctionHouseRepaired");
 	}
 
-	private double calculateListingFee(double basePrice) {
+	public double calculateListingFee(double basePrice) {
 		return Settings.TAX_LISTING_FEE_PERCENTAGE.getBoolean() ? (Settings.TAX_LISTING_FEE.getDouble() / 100D) * basePrice : Settings.TAX_LISTING_FEE.getDouble();
-	}
-
-	public void listAuction(Player seller, ItemStack original, ItemStack item, int seconds, double basePrice, double bidStartPrice, double bidIncPrice, double currentPrice, boolean isBiddingItem, boolean isUsingBundle, boolean requiresHandRemove) {
-		listAuction(seller, original, item, seconds, basePrice, bidStartPrice, bidIncPrice, currentPrice, isBiddingItem, isUsingBundle, requiresHandRemove, false, false);
-	}
-
-	/**
-	 * Used to insert an auction into the database
-	 *
-	 * @param seller        Is the player who is listing the item
-	 * @param item          Is the item stack being listed to the auction house
-	 * @param original      Is the original item stack (only applies if using a bundle)
-	 * @param seconds       Is the total amount of seconds the item will be active for
-	 * @param basePrice     Is the buy now price
-	 * @param bidStartPrice Is the price the bidding will start at if the item is an auction
-	 * @param bidIncPrice   Is the default price increment for an auction
-	 * @param currentPrice  Is the current/start price of an item
-	 * @param isBiddingItem States whether the item is an auction or bin item
-	 * @param isUsingBundle States whether the item is a bundled item
-	 */
-	public void listAuction(Player seller, ItemStack original, ItemStack item, int seconds, double basePrice, double bidStartPrice, double bidIncPrice, double currentPrice, boolean isBiddingItem, boolean isUsingBundle, boolean requiresHandRemove, boolean isInfinite, boolean allowPartialBuy) {
-		if (McMMOHook.isUsingAbility(seller)) {
-			AuctionHouse.getInstance().getLocale().getMessage("general.mcmmo_ability_active").sendPrefixedMessage(seller);
-			return;
-		}
-
-		if (!Settings.ALLOW_SALE_OF_DAMAGED_ITEMS.getBoolean() && isDamaged(item)) {
-			AuctionHouse.getInstance().getLocale().getMessage("general.cannot list damaged item").sendPrefixedMessage(seller);
-			return;
-		}
-
-		if (Settings.PREVENT_SALE_OF_REPAIRED_ITEMS.getBoolean() && isRepaired(item)) {
-			AuctionHouse.getInstance().getLocale().getMessage("general.cannot list repaired item").sendPrefixedMessage(seller);
-			return;
-		}
-
-		if (!meetsMinItemPrice(isUsingBundle, isBiddingItem, original, basePrice, bidStartPrice)) {
-			AuctionHouse.getInstance().getLocale().getMessage("pricing.minitemprice").processPlaceholder("price", AuctionAPI.getInstance().formatNumber(AuctionHouse.getInstance().getMinItemPriceManager().getMinPrice(original).getPrice())).sendPrefixedMessage(seller);
-			return;
-		}
-
-		AuctionedItem auctionedItem = new AuctionedItem();
-		auctionedItem.setId(UUID.randomUUID());
-		auctionedItem.setOwner(seller.getUniqueId());
-		auctionedItem.setHighestBidder(seller.getUniqueId());
-		auctionedItem.setOwnerName(seller.getName());
-		auctionedItem.setHighestBidderName(seller.getName());
-		auctionedItem.setItem(item);
-		auctionedItem.setCategory(MaterialCategorizer.getMaterialCategory(item));
-		auctionedItem.setExpiresAt(System.currentTimeMillis() + 1000L * seconds);
-		auctionedItem.setBidItem(isBiddingItem);
-		auctionedItem.setExpired(false);
-
-		auctionedItem.setBasePrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(basePrice) : basePrice);
-		auctionedItem.setBidStartingPrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(bidStartPrice) : bidStartPrice);
-		auctionedItem.setBidIncrementPrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(bidIncPrice) : bidIncPrice);
-		auctionedItem.setCurrentPrice(Settings.ROUND_ALL_PRICES.getBoolean() ? Math.round(currentPrice) : currentPrice);
-
-		auctionedItem.setListedWorld(seller.getWorld().getName());
-		auctionedItem.setInfinite(isInfinite);
-		auctionedItem.setAllowPartialBuy(allowPartialBuy);
-
-		if (Settings.TAX_ENABLED.getBoolean() && Settings.TAX_CHARGE_LISTING_FEE.getBoolean()) {
-			if (!EconomyManager.hasBalance(seller, calculateListingFee(basePrice))) {
-				AuctionHouse.getInstance().getLocale().getMessage("auction.tax.cannotpaylistingfee").processPlaceholder("price", AuctionAPI.getInstance().formatNumber(calculateListingFee(basePrice))).sendPrefixedMessage(seller);
-				return;
-			}
-			EconomyManager.withdrawBalance(seller, calculateListingFee(basePrice));
-			AuctionHouse.getInstance().getLocale().getMessage("auction.tax.paidlistingfee").processPlaceholder("price", AuctionAPI.getInstance().formatNumber(calculateListingFee(basePrice))).sendPrefixedMessage(seller);
-			AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyremove").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(seller))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(calculateListingFee(basePrice))).sendPrefixedMessage(seller);
-		}
-
-		AuctionStartEvent startEvent = new AuctionStartEvent(seller, auctionedItem);
-		Bukkit.getServer().getPluginManager().callEvent(startEvent);
-		if (startEvent.isCancelled()) return;
-
-		ItemStack finalItemToSell = item.clone();
-		int totalOriginal = isUsingBundle ? AuctionAPI.getInstance().getItemCountInPlayerInventory(seller, original) : finalItemToSell.getAmount();
-
-		if (requiresHandRemove)
-			PlayerUtils.takeActiveItem(seller, CompatibleHand.MAIN_HAND, totalOriginal);
-
-
-		SoundManager.getInstance().playSound(seller, Settings.SOUNDS_LISTED_ITEM_ON_AUCTION_HOUSE.getString(), 1.0F, 1.0F);
-		String NAX = AuctionHouse.getInstance().getLocale().getMessage("auction.biditemwithdisabledbuynow").getMessage();
-		String msg = AuctionHouse.getInstance().getLocale().getMessage(auctionedItem.isBidItem() ? "auction.listed.withbid" : "auction.listed.nobid")
-				.processPlaceholder("amount", finalItemToSell.getAmount())
-				.processPlaceholder("item", AuctionAPI.getInstance().getItemName(finalItemToSell))
-				.processPlaceholder("base_price", auctionedItem.getBasePrice() <= -1 ? NAX : AuctionAPI.getInstance().formatNumber(auctionedItem.getBasePrice()))
-				.processPlaceholder("start_price", AuctionAPI.getInstance().formatNumber(auctionedItem.getBidStartingPrice()))
-				.processPlaceholder("increment_price", AuctionAPI.getInstance().formatNumber(auctionedItem.getBidIncrementPrice())).getMessage();
-
-		if (AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(seller.getUniqueId()) == null) {
-			AuctionHouse.getInstance().getLocale().newMessage(TextUtils.formatText("&cCould not find auction player instance for&f: &e" + seller.getName() + "&c creating one now.")).sendPrefixedMessage(Bukkit.getConsoleSender());
-			AuctionHouse.getInstance().getAuctionPlayerManager().addPlayer(new AuctionPlayer(seller));
-		}
-
-		if (AuctionHouse.getInstance().getAuctionPlayerManager().getPlayer(seller.getUniqueId()).isShowListingInfo()) {
-			AuctionHouse.getInstance().getLocale().newMessage(msg).sendPrefixedMessage(seller);
-		}
-
-
-		// Actually attempt the insertion now
-		AuctionHouse.getInstance().getDataManager().insertAuctionAsync(auctionedItem, (error, inserted) -> {
-			if (error != null) {
-				AuctionHouse.getInstance().getLocale().getMessage("general.something_went_wrong_while_listing").sendPrefixedMessage(seller);
-				ItemStack originalCopy = original.clone();
-				if (isUsingBundle) {
-					originalCopy.setAmount(1);
-					for (int i = 0; i < totalOriginal; i++) PlayerUtils.giveItem(seller, originalCopy);
-				} else {
-					originalCopy.setAmount(totalOriginal);
-					PlayerUtils.giveItem(seller, originalCopy);
-				}
-
-				// If the item could not be added for whatever reason and the tax listing fee is enabled, refund them
-				if (Settings.TAX_ENABLED.getBoolean() && Settings.TAX_CHARGE_LISTING_FEE.getBoolean()) {
-					EconomyManager.deposit(seller, calculateListingFee(basePrice));
-					AuctionHouse.getInstance().getLocale().getMessage("pricing.moneyadd").processPlaceholder("player_balance", AuctionAPI.getInstance().formatNumber(EconomyManager.getBalance(seller))).processPlaceholder("price", AuctionAPI.getInstance().formatNumber(calculateListingFee(basePrice))).sendPrefixedMessage(seller);
-				}
-				return;
-			}
-
-			AuctionHouse.getInstance().getAuctionItemManager().addAuctionItem(auctionedItem);
-			if (Settings.BROADCAST_AUCTION_LIST.getBoolean()) {
-
-				final String prefix = AuctionHouse.getInstance().getLocale().getMessage("general.prefix").getMessage();
-
-
-				String msgToAll = AuctionHouse.getInstance().getLocale().getMessage(auctionedItem.isBidItem() ? "auction.broadcast.withbid" : "auction.broadcast.nobid")
-						.processPlaceholder("amount", finalItemToSell.getAmount())
-						.processPlaceholder("player", seller.getName())
-						.processPlaceholder("player_displayname", AuctionAPI.getInstance().getDisplayName(seller))
-						.processPlaceholder("item", AuctionAPI.getInstance().getItemName(finalItemToSell))
-						.processPlaceholder("base_price", auctionedItem.getBasePrice() <= -1 ? NAX : AuctionAPI.getInstance().formatNumber(auctionedItem.getBasePrice()))
-						.processPlaceholder("start_price", AuctionAPI.getInstance().formatNumber(auctionedItem.getBidStartingPrice()))
-						.processPlaceholder("increment_price", AuctionAPI.getInstance().formatNumber(auctionedItem.getBidIncrementPrice())).getMessage();
-
-				Bukkit.getOnlinePlayers().forEach(p -> {
-					if (!p.getUniqueId().equals(seller.getUniqueId()))
-						p.sendMessage(TextUtils.formatText((prefix.length() == 0 ? "" : prefix + " ") + msgToAll));
-				});
-			}
-		});
 	}
 
 	public boolean meetsMinItemPrice(boolean isUsingBundle, boolean isBiddingItem, ItemStack original, double basePrice, double bidStartPrice) {
@@ -908,5 +808,45 @@ public class AuctionAPI {
 			}
 
 		return player.getName();
+	}
+
+	public boolean meetsListingRequirements(Player player, ItemStack itemStack) {
+		boolean meets = true;
+
+		if (Settings.MAKE_BLOCKED_ITEMS_A_WHITELIST.getBoolean()) {
+			if (!Settings.BLOCKED_ITEMS.getStringList().contains(itemStack.getType().name())) {
+				AuctionHouse.getInstance().getLocale().getMessage("general.blockeditem").processPlaceholder("item", itemStack.getType().name()).sendPrefixedMessage(player);
+				return false;
+			}
+		} else {
+			if (Settings.BLOCKED_ITEMS.getStringList().contains(itemStack.getType().name())) {
+				AuctionHouse.getInstance().getLocale().getMessage("general.blockeditem").processPlaceholder("item", itemStack.getType().name()).sendPrefixedMessage(player);
+				return false;
+			}
+		}
+
+		String itemName = ChatColor.stripColor(getItemName(itemStack).toLowerCase());
+		List<String> itemLore = getItemLore(itemStack).stream().map(line -> ChatColor.stripColor(line.toLowerCase())).collect(Collectors.toList());
+
+		// Check for blocked names and lore
+		for (String s : Settings.BLOCKED_ITEM_NAMES.getStringList()) {
+			if (match(s, itemName)) {
+				AuctionHouse.getInstance().getLocale().getMessage("general.blockedname").sendPrefixedMessage(player);
+				meets = false;
+			}
+		}
+
+		if (!itemLore.isEmpty() && meets) {
+			for (String s : Settings.BLOCKED_ITEM_LORES.getStringList()) {
+				for (String line : itemLore) {
+					if (match(s, line)) {
+						AuctionHouse.getInstance().getLocale().getMessage("general.blockedlore").sendPrefixedMessage(player);
+						meets = false;
+					}
+				}
+			}
+		}
+
+		return meets;
 	}
 }

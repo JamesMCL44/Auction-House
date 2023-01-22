@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.commands;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -41,22 +59,23 @@ public final class CommandUpload extends AbstractCommand {
 
 		if (!args[0].equalsIgnoreCase("-confirm")) return ReturnType.FAILURE;
 
-		DatabaseConnector databaseConnector = new SQLiteConnector(AuctionHouse.getInstance());
-		DataManager manager = new DataManager(databaseConnector, AuctionHouse.getInstance());
+		final AuctionHouse instance = AuctionHouse.getInstance();
+		final DatabaseConnector databaseConnector = new SQLiteConnector(instance);
+		final DataManager manager = new DataManager(databaseConnector, instance, null);
 
 		manager.getItems((error, items) -> {
 			if (error == null)
-				items.forEach(item -> AuctionHouse.getInstance().getDataManager().insertAuctionAsync(item, null));
+				items.forEach(item -> instance.getDataManager().insertAuctionAsync(item, null));
 		});
 
 		manager.getAdminLogs((error, logs) -> {
 			if (error == null)
-				logs.forEach(log -> AuctionHouse.getInstance().getDataManager().insertLogAsync(log));
+				logs.forEach(log -> instance.getDataManager().insertLogAsync(log));
 		});
 
 		manager.getTransactions((error, transactions) -> {
 			if (error == null)
-				transactions.forEach(transaction -> AuctionHouse.getInstance().getDataManager().insertTransactionAsync(transaction, null));
+				transactions.forEach(transaction -> instance.getDataManager().insertTransactionAsync(transaction, null));
 		});
 
 		return ReturnType.SUCCESS;

@@ -1,9 +1,26 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse;
 
 import ca.tweetzy.auctionhouse.api.UpdateChecker;
 import ca.tweetzy.auctionhouse.api.hook.PlaceholderAPIHook;
 import ca.tweetzy.auctionhouse.api.hook.UltraEconomyHook;
-import ca.tweetzy.auctionhouse.auction.AuctionPlayer;
 import ca.tweetzy.auctionhouse.auction.AuctionedItem;
 import ca.tweetzy.auctionhouse.commands.*;
 import ca.tweetzy.auctionhouse.database.DataManager;
@@ -58,6 +75,7 @@ public class AuctionHouse extends TweetyPlugin {
 	private static TaskChainFactory taskChainFactory;
 	private static AuctionHouse instance;
 	private PluginHook ultraEconomyHook;
+	private PluginHook cityBuildStuff;
 
 	@Getter
 	@Setter
@@ -87,7 +105,7 @@ public class AuctionHouse extends TweetyPlugin {
 	private AuctionBanManager auctionBanManager;
 
 	@Getter
-	private AuctionStatManager auctionStatManager;
+	private AuctionStatisticManager auctionStatisticManager;
 
 	@Getter
 	private MinItemPriceManager minItemPriceManager;
@@ -145,6 +163,8 @@ public class AuctionHouse extends TweetyPlugin {
 
 		// Setup Economy
 		final String ECO_PLUGIN = Settings.ECONOMY_PLUGIN.getString();
+
+
 		if (ECO_PLUGIN.startsWith("UltraEconomy")) {
 			EconomyManager.getManager().setPreferredHook(this.ultraEconomyHook);
 		} else {
@@ -164,13 +184,20 @@ public class AuctionHouse extends TweetyPlugin {
 		if (getServer().getPluginManager().isPluginEnabled("CMI"))
 			Bukkit.getServer().getPluginManager().registerEvents(new CMIListener(), this);
 
-		// auction players
-		this.auctionPlayerManager = new AuctionPlayerManager();
-		Bukkit.getOnlinePlayers().forEach(p -> this.auctionPlayerManager.addPlayer(new AuctionPlayer(p)));
-
 		// Setup the database if enabled
-		this.databaseConnector = Settings.DATABASE_USE.getBoolean() ? new MySQLConnector(this, Settings.DATABASE_HOST.getString(), Settings.DATABASE_PORT.getInt(), Settings.DATABASE_NAME.getString(), Settings.DATABASE_USERNAME.getString(), Settings.DATABASE_PASSWORD.getString(), Settings.DATABASE_USE_SSL.getBoolean()) : new SQLiteConnector(this);
-		this.dataManager = new DataManager(this.databaseConnector, this);
+		this.databaseConnector = Settings.DATABASE_USE.getBoolean() ? new MySQLConnector(
+				this,
+				Settings.DATABASE_HOST.getString(),
+				Settings.DATABASE_PORT.getInt(),
+				Settings.DATABASE_NAME.getString(),
+				Settings.DATABASE_USERNAME.getString(),
+				Settings.DATABASE_PASSWORD.getString(),
+				Settings.DATABASE_CUSTOM_PARAMS.getString().equalsIgnoreCase("None") ? "" : Settings.DATABASE_CUSTOM_PARAMS.getString()
+		) : new SQLiteConnector(this);
+
+		// Use a custom table prefix if using a remote database. The default prefix setting acts exactly like if the prefix is null
+		final String tablePrefix = Settings.DATABASE_USE.getBoolean() ? Settings.DATABASE_TABLE_PREFIX.getString() : null;
+		this.dataManager = new DataManager(this.databaseConnector, this, tablePrefix);
 
 		DataMigrationManager dataMigrationManager = new DataMigrationManager(this.databaseConnector, this.dataManager,
 				new _1_InitialMigration(),
@@ -186,7 +213,9 @@ public class AuctionHouse extends TweetyPlugin {
 				new _11_AdminLogMigration(),
 				new _12_SerializeFormatDropMigration(),
 				new _13_MinItemPriceMigration(),
-				new _14_PartialQtyBuyMigration()
+				new _14_PartialQtyBuyMigration(),
+				new _15_AuctionPlayerMigration(),
+				new _16_StatisticVersionTwoMigration()
 		);
 
 		dataMigrationManager.runMigrations();
@@ -210,8 +239,12 @@ public class AuctionHouse extends TweetyPlugin {
 		this.minItemPriceManager = new MinItemPriceManager();
 		this.minItemPriceManager.loadMinPrices();
 
-		this.auctionStatManager = new AuctionStatManager();
-		this.auctionStatManager.loadStats();
+		this.auctionStatisticManager = new AuctionStatisticManager();
+		this.auctionStatisticManager.loadStatistics();
+
+		// auction players
+		this.auctionPlayerManager = new AuctionPlayerManager();
+		this.auctionPlayerManager.loadPlayers();
 
 		// gui manager
 		this.guiManager.init();
@@ -231,13 +264,13 @@ public class AuctionHouse extends TweetyPlugin {
 				new CommandMigrate(),
 				new CommandReload(),
 				new CommandFilter(),
-				new CommandStatus(),
 				new CommandAdmin(),
 				new CommandBan(),
 				new CommandUnban(),
 				new CommandMarkChest(),
 				new CommandUpload(),
-				new CommandMinPrice()
+				new CommandMinPrice(),
+				new CommandStats()
 		);
 
 		// Placeholder API
@@ -300,7 +333,6 @@ public class AuctionHouse extends TweetyPlugin {
 			this.auctionItemManager.end();
 			this.filterManager.saveFilterWhitelist(false);
 			this.auctionBanManager.saveBans(false);
-			this.auctionStatManager.saveStats();
 			this.dataManager.close();
 		}
 

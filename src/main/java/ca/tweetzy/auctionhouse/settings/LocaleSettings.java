@@ -1,3 +1,21 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.settings;
 
 import ca.tweetzy.auctionhouse.AuctionHouse;
@@ -65,6 +83,8 @@ public class LocaleSettings {
 		languageNodes.put("general.min price already added", "&cThere is already a minimum price set, please delete the existing one first.");
 		languageNodes.put("general.added min price", "&aSuccessfully set minimum price for %item% &ato &2$%price%");
 		languageNodes.put("general.qtybuydisabled", "&4%item_owner%&c is only accepting purchases of the entire stack.");
+		languageNodes.put("general.invalid bid amount", "&cBid either too low or too high");
+		languageNodes.put("general.invalid deletion range", "&cPlease enter a valid deletion range");
 
 
 		languageNodes.put("pricing.minbaseprice", "&cThe minimum base price must be &a$%price%");
@@ -79,18 +99,25 @@ public class LocaleSettings {
 		languageNodes.put("pricing.bidmusthigherthanprevious", "&cYour bid must be higher than &4%current_bid%");
 		languageNodes.put("pricing.minitemprice", "&cThe minimum price for this item must be &a$%price%");
 
-		languageNodes.put("prompts.enter new buy now price", "&aPlease enter the new buy now price in chat:");
-		languageNodes.put("prompts.enter new starting bid", "&aPlease enter the new starting bid in chat:");
-		languageNodes.put("prompts.enter new bid increment", "&aPlease enter the new bid increment in chat:");
 
-		languageNodes.put("prompts.enter bid amount", "&7Current Bid &e%current_bid% &7Type '&ccancel&7' to cancel placing bid");
-		languageNodes.put("prompts.enter valid bid amount", "&cBid either too low or too high");
+		languageNodes.put("titles.buy now price.title", "&eBuy Out Price");
+		languageNodes.put("titles.buy now price.subtitle", "&fEnter new buyout price in chat");
 
-		languageNodes.put("prompts.enter listing time", "&aPlease enter listing time (ex. 1 day):");
-		languageNodes.put("prompts.enter valid listing time", "&cPlease enter a valid listing time.");
+		languageNodes.put("titles.starting bid price.title", "&eStarting Bid Price");
+		languageNodes.put("titles.starting bid price.subtitle", "&fEnter new starting bid in chat");
 
-		languageNodes.put("prompts.enter deletion range", "&aPlease enter deletion range (ex. 1 day):");
-		languageNodes.put("prompts.enter valid deletion range", "&cPlease enter a valid deletion range");
+		languageNodes.put("titles.bid increment price.title", "&eBid Increment Price");
+		languageNodes.put("titles.bid increment price.subtitle", "&fEnter new bid increment in chat");
+
+		languageNodes.put("titles.listing time.title", "&eListing Time");
+		languageNodes.put("titles.listing time.subtitle", "&fEnter new listing time in chat");
+		languageNodes.put("titles.listing time.actionbar", "&aExample&f: &e1 day &f(&eTime Units&f: &bsecond&f, &bminute&f, &bhour&f, &bday&f, &bweek&f, &bmonth&f, &byear&f)");
+
+		languageNodes.put("titles.enter bid.title", "&ePlace Bid");
+		languageNodes.put("titles.enter bid.subtitle", "&fEnter new bid amount in chat");
+
+		languageNodes.put("titles.enter deletion range.title", "&eDeletion Range");
+		languageNodes.put("titles.enter deletion range.subtitle", "&fEnter deletion range in chat");
 
 		languageNodes.put("transaction.sale_type.bid_won", "Won Auction");
 		languageNodes.put("transaction.sale_type.immediate_buy", "Bought Immediately");
@@ -129,6 +156,13 @@ public class LocaleSettings {
 		languageNodes.put("auction_filter.categories.search", "Search");
 		languageNodes.put("auction_filter.sort_order.recent", "Recent");
 		languageNodes.put("auction_filter.sort_order.price", "Price");
+
+		languageNodes.put("auction_statistic.created_auction", "Created Auction");
+		languageNodes.put("auction_statistic.created_bin", "Created Bin");
+		languageNodes.put("auction_statistic.sold_auctions", "Sold Auctions");
+		languageNodes.put("auction_statistic.sold_bins", "Sold Bins");
+		languageNodes.put("auction_statistic.money_spent", "Money Spent");
+		languageNodes.put("auction_statistic.money_earned", "Money Earned");
 
 		languageNodes.put("auction.listed.withbid", "&eListed &fx%amount% &6%item% &e&lBuy Now&f: &a%base_price% &e&lStarting&f: &a%start_price% &e&lIncrement&f: &a%increment_price%");
 		languageNodes.put("auction.listed.nobid", "&eListed &fx%amount% &6%item% &efor &a%base_price%");
@@ -177,6 +211,7 @@ public class LocaleSettings {
 		languageNodes.put("commands.syntax.togglelistinfo", "togglelistinfo");
 		languageNodes.put("commands.syntax.markchest", "markchest");
 		languageNodes.put("commands.syntax.min price", "minprices [add] [price]");
+		languageNodes.put("commands.syntax.stats", "stats [player]");
 
 		languageNodes.put("commands.description.active", "View all your auction listings");
 		languageNodes.put("commands.description.auctionhouse", "Main command for the plugin, it opens the auction window.");
@@ -194,6 +229,7 @@ public class LocaleSettings {
 		languageNodes.put("commands.description.togglelistinfo", "Toggle whether auction house should message you when you list an item");
 		languageNodes.put("commands.description.markchest", "Toggles whether a chest is an auction chest");
 		languageNodes.put("commands.description.min price", "Adds a minimum sell price to an item");
+		languageNodes.put("commands.description.stats", "View yours or another players stats");
 	}
 
 	public static void send(CommandSender sender, String msg) {

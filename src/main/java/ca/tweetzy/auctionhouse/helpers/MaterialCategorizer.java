@@ -1,7 +1,25 @@
+/*
+ * Auction House
+ * Copyright 2018-2022 Kiran Hart
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package ca.tweetzy.auctionhouse.helpers;
 
 import ca.tweetzy.auctionhouse.auction.enums.AuctionItemCategory;
-import ca.tweetzy.core.compatibility.XMaterial;
+import ca.tweetzy.flight.comp.enums.CompMaterial;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -18,21 +36,22 @@ public class MaterialCategorizer {
 	}
 
 	public static AuctionItemCategory getMaterialCategory(Material material) {
-		if (material == XMaterial.SPAWNER.parseMaterial()) return AuctionItemCategory.SPAWNERS;
+		if (material == CompMaterial.SPAWNER.parseMaterial()) return AuctionItemCategory.SPAWNERS;
 		if (material.isEdible()) return AuctionItemCategory.FOOD;
 		if (material.isBlock()) return AuctionItemCategory.BLOCKS;
-		if (material == XMaterial.ENCHANTED_BOOK.parseMaterial()) return AuctionItemCategory.ENCHANTS;
+		if (material == CompMaterial.ENCHANTED_BOOK.parseMaterial()) return AuctionItemCategory.ENCHANTS;
 
+		final String materialName = material.name();
 		// Armor filter
-		if (material.name().endsWith("_HELMET") || material.name().endsWith("_CHESTPLATE") || material.name().endsWith("_LEGGINGS") || material.name().endsWith("_BOOTS"))
+		if (materialName.endsWith("_HELMET") || materialName.endsWith("_CHESTPLATE") || materialName.endsWith("_LEGGINGS") || materialName.endsWith("_BOOTS"))
 			return AuctionItemCategory.ARMOR;
 
 		// Weapon Filter
-		if (material.name().endsWith("_SWORD") || material.name().equals("BOW") || material.name().equals("TRIDENT") || material.name().equals("CROSSBOW"))
+		if (materialName.endsWith("_SWORD") || materialName.equals("BOW") || materialName.equals("TRIDENT") || materialName.equals("CROSSBOW"))
 			return AuctionItemCategory.WEAPONS;
 
 		// Tool Filter
-		if (material.name().endsWith("_AXE") || material.name().endsWith("_PICKAXE") || material.name().endsWith("_HOE") || material.name().endsWith("SHOVEL"))
+		if (materialName.endsWith("_AXE") || materialName.endsWith("_PICKAXE") || materialName.endsWith("_HOE") || materialName.endsWith("SHOVEL"))
 			return AuctionItemCategory.TOOLS;
 		return AuctionItemCategory.MISC;
 	}

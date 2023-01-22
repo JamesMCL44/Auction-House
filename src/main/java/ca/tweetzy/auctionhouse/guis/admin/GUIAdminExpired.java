@@ -1,6 +1,6 @@
 /*
  * Auction House
- * Copyright 2022 Kiran Hart
+ * Copyright 2018-2022 Kiran Hart
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,8 +60,8 @@ public final class GUIAdminExpired extends AbstractPlaceholderGui {
 
 		AuctionHouse.newChain().asyncFirst(() -> this.items.stream().sorted(Comparator.comparingLong(AuctionedItem::getExpiresAt).reversed()).skip((page - 1) * 45L).limit(45).collect(Collectors.toList())).asyncLast(data -> {
 			pages = (int) Math.max(1, Math.ceil(this.items.size() / (double) 45));
-			setPrevPage(5, 3, new TItemBuilder(Objects.requireNonNull(Settings.GUI_BACK_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_BACK_BTN_NAME.getString()).setLore(Settings.GUI_BACK_BTN_LORE.getStringList()).toItemStack());
-			setNextPage(5, 5, new TItemBuilder(Objects.requireNonNull(Settings.GUI_NEXT_BTN_ITEM.getMaterial().parseMaterial())).setName(Settings.GUI_NEXT_BTN_NAME.getString()).setLore(Settings.GUI_NEXT_BTN_LORE.getStringList()).toItemStack());
+			setPrevPage(5, 3, getPreviousPageItem());
+			setNextPage(5, 5, getNextPageItem());
 
 			setOnPage(e -> {
 				draw();
